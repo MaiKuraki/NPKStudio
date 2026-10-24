@@ -39,12 +39,11 @@ tests/samples/real_sample.NPK
 
 ## 没有真实样本时会发生什么
 
-`dotnet test` 仍然全绿：缺少 `real_sample.NPK` 时，依赖它的用例会在方法开头
-`if (!SampleFiles.RealSampleAvailable) return;` 静默返回——不计入失败，也不打印任何内容
-（不用 `Assert.Inconclusive`：那会让报告里的"跳过"数随本机有没有样本而变）。
+`dotnet test` 仍然通过：缺少 `real_sample.NPK` 时，依赖它的用例会以
+`Assert.Inconclusive(...)` 标记为未执行——不计入失败，也不计入通过。测试汇总里出现
+`Skipped: 3` 就表示这三条"真实包字节快照"用例没有跑。
 
-CI 上因此**只覆盖合成样本**：容器格式、帧编辑、写回、UI 打开与保存这些主链路
-全部由 `synthetic_shapes.NPK` 承担；只有"某份特定真实包的字节快照"这类断言会被跳过。
+CI 因此只覆盖合成样本：容器格式、帧编辑、写回、UI 打开与保存这些主链路
+全部由 `synthetic_shapes.NPK` 承担；只有"某份特定真实包的字节快照"这类断言不会执行。
 
-哪些用例会被跳过，见各测试类开头的注释；集中说明在
-[CONTRIBUTING.md](../../CONTRIBUTING.md#测试样本)。
+哪些用例依赖真实样本，见各测试类开头的注释。
