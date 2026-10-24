@@ -187,40 +187,6 @@ public static class NpkWriter
         TraceLog.Instance.Info($"NPK 已写出：{path}（{entries.Count} 条目 / {expectedLength} 字节）。");
     }
 
-    /// <summary>流式条目的合法性校验（与 <see cref="Validate" /> 同口径）。</summary>
-    private static void ValidateSources(IReadOnlyList<NpkEntrySource> entries)
-    {
-        var seen = new HashSet<string>(entries.Count, StringComparer.OrdinalIgnoreCase);
-        for (var i = 0; i < entries.Count; i++)
-        {
-            var item = entries[i] ?? throw new ArgumentException($"第 {i} 个条目为 null。", nameof(entries));
-            var path = item.Path;
-
-            if (string.IsNullOrWhiteSpace(path))
-            {
-                throw new ArgumentException($"第 {i} 个条目的路径为空。", nameof(entries));
-            }
-
-            if (!seen.Add(path))
-            {
-                throw new ArgumentException($"第 {i} 个条目路径重复：\"{path}\"（重复路径会让客户端只认第一条）。", nameof(entries));
-            }
-
-            var byteCount = Encoding.UTF8.GetByteCount(path);
-            if (byteCount >= NpkCipher.PathLength)
-            {
-                throw new ArgumentException(
-                    $"第 {i} 个条目路径 \"{path}\" 的 UTF-8 长度 {byteCount} 超过上限 {NpkCipher.PathLength - 1} 字节（需留 1 字节给 0x00 结尾）。",
-                    nameof(entries));
-            }
-
-            if (item.Length <= 0)
-            {
-                throw new ArgumentException($"第 {i} 个条目 \"{path}\" 的长度为 {item.Length}（必须大于 0，否则会被误判）。", nameof(entries));
-            }
-        }
-    }
-
     /// <summary>
     ///     流式写出的自检：核对总长度、条目数、路径、每条长度<b>与每条 offset</b>。
     ///     <para>

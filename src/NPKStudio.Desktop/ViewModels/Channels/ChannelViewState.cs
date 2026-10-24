@@ -33,6 +33,9 @@ internal sealed class ChannelViewState
     private readonly CanvasProjection _projection = new();
     private readonly MostlyTransparentHint _transparentHint = new();
 
+    /// <summary>按帧缓存解码结果（含效果副本）。播放第 2 圈起不再解码、不再分配。</summary>
+    private readonly FrameImageCache _images = new(CreateLinearDodge);
+
     private string _filterText = string.Empty;
     private RgbaImage? _currentImage;
     private RgbaImage? _rawImage;
@@ -104,22 +107,21 @@ internal sealed class ChannelViewState
     public void ClearCurrentImage() => CurrentImage = null;
 
     /// <summary>
-    ///     按当前帧重新解码并套用画布效果。
+    ///     按当前帧重新取像素并套用画布效果。
     ///     <para>
-    ///         <b>这是播放 tick 会走到的路径</b>：内部没有 LINQ、没有闭包、没有字符串拼接；
-    ///         分配只来自解码本身（<c>Decode</c> 每次返回新数组）与「线性减淡」的副本。
+    ///         <b>这是播放 tick 会走到的路径</b>：走 <see cref="FrameImageCache" />，命中后不分配；
+    ///         未命中才解码。缓存按内容指纹失效，编辑过的帧下次访问必然重解。
     ///     </para>
     /// </summary>
     public void UpdateCurrentImage() {
         RgbaImage? raw = null;
+        RgbaImage? display = null;
         var image = _session.CurrentImg;
         var selected = _owner.SelectedFrame;
         if (image is not null && selected is not null) {
-            try {
-                raw = image.Decode(selected.Frame);
-            } catch {
-                raw = null;
-            }
+            var pixels = _images.GetOrDecode(image, selected.Frame, _owner.UseLinearDodge, _images.Generation);
+            raw = pixels?.Raw;
+            display = pixels?.Display;
         }
 
         // 原始解码结果单独留一份引用：导出/替换/另存必须用它，绝不能被预览变换污染。
@@ -133,16 +135,35 @@ internal sealed class ChannelViewState
         }
 
         // 「线性减淡」改变贴图本身的 RGBA（逐字节复刻 pvfUtility 的 LinearBrun），
-        // 结果不依赖背景；「原图」直接用解码结果。
-        var linearDodge = _owner.UseLinearDodge;
-        CurrentImage = linearDodge ? CreateLinearDodge(raw) : raw;
+        // 结果不依赖背景；缓存里已经按需生成了副本。
+        CurrentImage = display ?? raw;
 
-        if (linearDodge) {
+        if (_owner.UseLinearDodge) {
             WarnIfMostlyTransparent(CurrentImage);
         }
 
         UpdateFrameOffset();
         _owner.UpdateFrameCounter();
+    }
+
+    /// <summary>丢弃当前文档的帧位图缓存（切换 / 关闭 IMG 时调用）。</summary>
+    public void ResetFrameCache() => _images.Clear();
+
+    /// <summary>
+    ///     后台预解一组帧，把首圈播放的解码开销提前摊掉。
+    ///     <para>达到内存预算、或期间切换了文档就立即停手（见 <see cref="FrameImageCache.Prefetch" />）。</para>
+    /// </summary>
+    /// <param name="image">帧所属 IMG。</param>
+    /// <param name="frames">帧列表（按播放顺序）。</param>
+    public void PrefetchFrames(ImgFile image, IReadOnlyList<FrameViewModel> frames) {
+        if (frames.Count == 0) return;
+
+        var source = new ImgFrame[frames.Count];
+        for (var i = 0; i < frames.Count; i++) {
+            source[i] = frames[i].Frame;
+        }
+
+        _images.Prefetch(image, source);
     }
 
     /// <summary>

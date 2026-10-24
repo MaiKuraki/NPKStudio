@@ -215,7 +215,7 @@ public sealed class ImgRoundTripTests
         var image = ImgFile.Read(new MemoryStream(data), "link.img", data.Length);
 
         Assert.IsNull(image.Decode(image.Frames[1]), "LINK 帧解码必须返回 null（D-04）。");
-        Assert.IsNull(image.Encode(image.Frames[1]), "LINK 帧编码必须返回 null（D-04）。");
+        Assert.IsNull(image.GetUncompressedPixels(image.Frames[1]), "LINK 帧编码必须返回 null（D-04）。");
     }
 
     [TestMethod]
@@ -238,7 +238,7 @@ public sealed class ImgRoundTripTests
         ]);
 
         var image = ImgFile.Read(new MemoryStream(data), "none.img", data.Length);
-        var encoded = image.Encode(image.Frames[0]);
+        var encoded = image.GetUncompressedPixels(image.Frames[0]);
 
         Assert.IsNotNull(encoded);
         CollectionAssert.AreEqual(raw, encoded, "Encode 应返回未压缩原始像素字节。");

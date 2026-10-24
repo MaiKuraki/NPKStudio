@@ -33,12 +33,16 @@ public interface IImgHandler
     RgbaImage? Decode(ImgFile file, ImgFrame frame);
 
     /// <summary>
-    ///     取出一帧的<b>未压缩原始像素字节</b>（不做像素格式转换）。
+    ///     取出一帧的<b>未压缩原始像素字节</b>（解压 + 去压缩头，<b>不做</b>像素格式转换）。
+    ///     <para>
+    ///         方向与写盘的 <c>FramePixelEncoder.Encode</c>（BGRA → 目标格式）相反：
+    ///         本方法是"从文件字节还原出像素缓冲"，因此命名用"读"。
+    ///     </para>
     /// </summary>
     /// <param name="file">帧所属文件。</param>
-    /// <param name="frame">要编码的帧。</param>
+    /// <param name="frame">要读取的帧。</param>
     /// <returns>未压缩像素字节；LINK 帧返回 <c>null</c>（D-04：绝不把链接帧编码成独立纹理/数据）。</returns>
-    byte[]? Encode(ImgFile file, ImgFrame frame);
+    byte[]? ReadUncompressedPixels(ImgFile file, ImgFrame frame);
 
     /// <summary>
     ///     写版本头 + 索引区（v1 因为是"索引与数据内联"，也在这里写完整帧数据）。

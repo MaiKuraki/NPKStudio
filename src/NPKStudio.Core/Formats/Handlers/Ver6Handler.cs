@@ -94,7 +94,7 @@ internal sealed class Ver6Handler : ImgHandlerBase
     }
 
     /// <inheritdoc />
-    public override byte[]? Encode(ImgFile file, ImgFrame frame)
+    public override byte[]? ReadUncompressedPixels(ImgFile file, ImgFrame frame)
     {
         ArgumentNullException.ThrowIfNull(file);
         ArgumentNullException.ThrowIfNull(frame);

@@ -47,7 +47,7 @@ public sealed class OtherHandler : ImgHandlerBase
     }
 
     /// <inheritdoc />
-    public override byte[]? Encode(ImgFile file, ImgFrame frame)
+    public override byte[]? ReadUncompressedPixels(ImgFile file, ImgFrame frame)
     {
         return null;
     }

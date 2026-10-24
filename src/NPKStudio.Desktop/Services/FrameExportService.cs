@@ -12,16 +12,16 @@ namespace NPKStudio.Desktop.Services;
 internal readonly record struct PngBatchItem(string Path, RgbaImage Pixels);
 
 /// <summary>
-///     PNG 批量导出的<b>计划</b>：解码成功待写的项，加上解码失败的统计。
+///     批量 PNG 导出的<b>结果</b>：成功项数、解码失败项数、首个错误。
 ///     <para>
-///         把"解码 + 命名"和"真正写盘"分开，是为了让命名口径与"单帧失败不中断"能被单测覆盖——
+///         把"解码 / 命名"和"写盘"解耦，是为了让命名口径与"单帧失败不中断"能被单测覆盖：
 ///         Avalonia 的 <c>WriteableBitmap.Save</c> 在 headless 平台上是空实现，写盘本身无法在单测里断言。
 ///     </para>
 /// </summary>
-/// <param name="Items">解码成功、等待写盘的项（顺序与选中帧一致）。</param>
-/// <param name="Failed">解码失败的帧数。</param>
-/// <param name="FirstError">第一个解码失败的错误信息；没有失败时为 <c>null</c>。</param>
-internal sealed record PngBatchPlan(IReadOnlyList<PngBatchItem> Items, int Failed, string? FirstError);
+/// <param name="Succeeded">成功处理的帧数。</param>
+/// <param name="Failed">解码失败或写盘失败的帧数。</param>
+/// <param name="FirstError">第一个错误信息；没有失败时为 <c>null</c>。</param>
+internal readonly record struct PngBatchOutcome(int Succeeded, int Failed, string? FirstError);
 
 /// <summary>
 ///     帧序列的导出：批量 PNG 与动画 GIF。
@@ -40,6 +40,7 @@ internal sealed class FrameExportService
 
     /// <summary>
     ///     把多帧批量导出为独立 PNG（<c>{baseName}_{index:D3}.png</c>）。
+    ///     <para><b>流式</b>：解一帧、写一帧、丢一帧，峰值内存只与单帧大小有关。</para>
     ///     <para>单帧失败<b>不中断</b>整体流程：结束时汇总成功 / 失败数量与首个错误。</para>
     /// </summary>
     /// <param name="image">帧所属 IMG（用于解码）。</param>
@@ -55,48 +56,48 @@ internal sealed class FrameExportService
             return new OperationResult(false, Loc["status.pngBatchNoTarget"]);
         }
 
-        var plan = PlanPngBatch(image, frames, directory, baseName);
-        var succeeded = 0;
-        var failed = plan.Failed;
-        var firstError = plan.FirstError;
-
-        if (plan.Items.Count > 0)
+        // 目录按需创建：一帧都解不出来时不留空目录。
+        var created = false;
+        var outcome = ForEachDecodableFrame(image, frames, directory, baseName, item =>
         {
-            Directory.CreateDirectory(directory);
-        }
-
-        foreach (var item in plan.Items)
-        {
-            try
+            if (!created)
             {
-                ImageIo.SavePng(item.Pixels, item.Path);
-                succeeded++;
+                Directory.CreateDirectory(directory);
+                created = true;
             }
-            catch (Exception ex)
-            {
-                failed++;
-                firstError ??= ex.Message;
-            }
-        }
 
-        return failed == 0
-            ? new OperationResult(true, Loc.F("status.pngBatchOk", succeeded, directory))
-            : new OperationResult(succeeded > 0, Loc.F("status.pngBatchPartial", succeeded, failed, firstError));
+            ImageIo.SavePng(item.Pixels, item.Path);
+        });
+
+        return outcome.Failed == 0
+            ? new OperationResult(true, Loc.F("status.pngBatchOk", outcome.Succeeded, directory))
+            : new OperationResult(outcome.Succeeded > 0,
+                Loc.F("status.pngBatchPartial", outcome.Succeeded, outcome.Failed, outcome.FirstError));
     }
 
     /// <summary>
-    ///     只做"解码 + 计算目标文件名"，不碰磁盘（写盘由 <see cref="ExportPngBatch" /> 负责）。
+    ///     逐帧"解码 → 交给 <paramref name="sink" />"，不保留解码结果。
+    ///     <para>
+    ///         单测用它验证命名口径与"坏帧不中断"：sink 收集路径即可，
+    ///         不依赖 headless 平台上的 <c>WriteableBitmap.Save</c>。
+    ///     </para>
     /// </summary>
     /// <param name="image">帧所属 IMG。</param>
-    /// <param name="frames">要导出的帧。</param>
+    /// <param name="frames">要处理的帧。</param>
     /// <param name="directory">输出目录。</param>
     /// <param name="baseName">文件名前缀；空白时退化为 <c>frame</c>。</param>
-    /// <returns>导出计划。</returns>
-    internal static PngBatchPlan PlanPngBatch(
-        ImgFile image, IReadOnlyList<FrameViewModel> frames, string directory, string baseName)
+    /// <param name="sink">消费回调（路径 + 像素）；抛异常等价于该帧失败。</param>
+    /// <returns>成功 / 失败计数与首个错误。</returns>
+    internal static PngBatchOutcome ForEachDecodableFrame(
+        ImgFile image,
+        IReadOnlyList<FrameViewModel> frames,
+        string directory,
+        string baseName,
+        Action<PngBatchItem> sink)
     {
+        ArgumentNullException.ThrowIfNull(sink);
         var prefix = string.IsNullOrWhiteSpace(baseName) ? "frame" : baseName;
-        var items = new List<PngBatchItem>(frames.Count);
+        var succeeded = 0;
         var failed = 0;
         string? firstError = null;
 
@@ -107,7 +108,8 @@ internal sealed class FrameExportService
                 var pixels = image.Decode(item.Frame)
                     ?? throw new InvalidOperationException(Loc.F("status.pngBatchLinkFrame", item.IndexText));
 
-                items.Add(new PngBatchItem(Path.Combine(directory, $"{prefix}_{item.Frame.Index:D3}.png"), pixels));
+                sink(new PngBatchItem(Path.Combine(directory, $"{prefix}_{item.Frame.Index:D3}.png"), pixels));
+                succeeded++;
             }
             catch (Exception ex)
             {
@@ -116,7 +118,7 @@ internal sealed class FrameExportService
             }
         }
 
-        return new PngBatchPlan(items, failed, firstError);
+        return new PngBatchOutcome(succeeded, failed, firstError);
     }
 
     /// <summary>

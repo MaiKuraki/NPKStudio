@@ -8,7 +8,7 @@ namespace NPKStudio.Core.Formats.Npk;
 /// <summary>
 ///     NPK 容器的常量、路径 XOR 密钥与校验码计算。
 ///     <para>
-///         全部结论来自 <c>docs/refactor/FORMAT-VERIFIED.md</c> §1（真机样本逐字节校准）：
+///         全部结论来自 <c>docs/FORMAT.md</c> §1（真机样本逐字节校准）：
 ///         密钥 256 字节 = <c>"puchikon@neople dungeon and fighter "</c>（37 字节）+ 循环 <c>"DNF"</c> 填充到 254 + 末位 0。
 ///     </para>
 /// </summary>
@@ -165,7 +165,7 @@ public static class NpkCipher
     ///     计算条目表区的 SHA256 校验码（32 字节）。
     ///     <para>
     ///         ⚠️ <b>只对 <c>长度 / 17 * 17</c> 字节做 hash</b>——这个整除截断是格式约定，
-    ///         不是笔误（<c>FORMAT-VERIFIED.md</c> §1）。"修正"成完整长度会让所有既有 NPK 校验失败。
+    ///         不是笔误（<c>docs/FORMAT.md</c> §1）。"修正"成完整长度会让所有既有 NPK 校验失败。
     ///     </para>
     /// </summary>
     /// <param name="entryTable">条目表区字节（魔数 + 条目数 + 各条目 264 字节）。</param>

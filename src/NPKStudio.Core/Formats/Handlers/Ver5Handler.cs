@@ -172,7 +172,7 @@ internal sealed class Ver5Handler : ImgHandlerBase
     }
 
     /// <inheritdoc />
-    public override byte[]? Encode(ImgFile file, ImgFrame frame)
+    public override byte[]? ReadUncompressedPixels(ImgFile file, ImgFrame frame)
     {
         ArgumentNullException.ThrowIfNull(frame);
 
@@ -182,7 +182,7 @@ internal sealed class Ver5Handler : ImgHandlerBase
         }
 
         // 纹理帧没有帧级数据区字节；返回 null 而不是"整页字节"，避免调用方误以为这是该帧的像素。
-        return frame.Texture is null ? base.Encode(file, frame) : null;
+        return frame.Texture is null ? base.ReadUncompressedPixels(file, frame) : null;
     }
 
     /// <summary>

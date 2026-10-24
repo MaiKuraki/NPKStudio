@@ -182,13 +182,15 @@ public sealed class FrameVisibilityTests
         vm.RefreshFrameVisibility();
 
         var output = Path.Combine(folder.Path, "png");
-        var plan = FrameExportService.PlanPngBatch(vm.CurrentImgFile!, vm.Frames.ToList(), output, "walk");
+        var items = new List<PngBatchItem>();
+        var outcome = FrameExportService.ForEachDecodableFrame(
+            vm.CurrentImgFile!, vm.Frames.ToList(), output, "walk", items.Add);
 
-        Assert.Equal(3, plan.Items.Count);
-        Assert.Equal(0, plan.Failed);
-        Assert.EndsWith("_001.png", plan.Items[1].Path);
+        Assert.Equal(3, items.Count);
+        Assert.Equal(0, outcome.Failed);
+        Assert.EndsWith("_001.png", items[1].Path);
         // 隐藏帧照样解码出真实像素（不是被跳过、也不是空图）
-        Assert.Equal(8, plan.Items[1].Pixels.Width);
+        Assert.Equal(8, items[1].Pixels.Width);
     }
 
     /// <summary>

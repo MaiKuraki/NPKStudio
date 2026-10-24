@@ -176,13 +176,20 @@ internal sealed class ChannelFrameEditor
 
     /// <summary>用一张图片替换当前选中的帧（换图后刷新缩略图与画布）。</summary>
     public async Task ReplaceSelectedAsync(string imagePath) {
-        var r = await _editor.ReplaceAsync(imagePath, _owner.SelectedFrame);
-        _owner.Status = r.StatusMessage;
-        if (!r.Success) return;
+        // 换图会在后台改写帧字段（像素 / 几何），必须先停表，否则播放 tick 会读到半成品。
+        _owner.Stop();
+        _owner.IsBusy = true;
+        try {
+            var r = await _editor.ReplaceAsync(imagePath, _owner.SelectedFrame);
+            _owner.Status = r.StatusMessage;
+            if (!r.Success) return;
 
-        _view.UpdateCurrentImage();
-        _owner.Notify(nameof(FrameChannel.HasFrames));
-        RefreshChangeMarkers();
+            _view.UpdateCurrentImage();
+            _owner.Notify(nameof(FrameChannel.HasFrames));
+            RefreshChangeMarkers();
+        } finally {
+            _owner.IsBusy = false;
+        }
     }
 
     /// <summary>

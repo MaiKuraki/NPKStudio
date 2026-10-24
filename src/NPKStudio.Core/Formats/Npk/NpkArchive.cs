@@ -8,7 +8,7 @@ namespace NPKStudio.Core.Formats.Npk;
 /// <summary>
 ///     NPK 包（<c>"NeoplePack_Bill"</c>）的只读视图 + 另存为。
 ///     <para>
-///         布局（<c>FORMAT-VERIFIED.md</c> §1，真机样本逐字节校准）：
+///         布局（<c>docs/FORMAT.md</c> §1，真机样本逐字节校准）：
 ///         <code>
 /// 0        : "NeoplePack_Bill" + 0x00        16 字节
 /// 16       : int32 count
@@ -44,6 +44,13 @@ public sealed class NpkArchive : IDisposable
     private readonly NpkRawReader _reader;
 
     private bool _disposed;
+
+    /// <summary>
+    ///     是否正在"写回自身路径"。此时读句柄会被释放、条目表会被重建，
+    ///     任何并发的按偏移读取都可能拿到已关闭的句柄或过期偏移，因此直接拒绝而不是加锁等待
+    ///     （等待会把 UI 线程钉住，比报错更糟）。
+    /// </summary>
+    private volatile bool _saving;
 
     private NpkArchive(string filePath, NpkRawReader reader)
     {
@@ -114,6 +121,7 @@ public sealed class NpkArchive : IDisposable
     public byte[] ReadRaw(NpkEntry entry)
     {
         ThrowIfDisposed();
+        ThrowIfSaving();
         return _reader.ReadRaw(entry);
     }
 
@@ -125,6 +133,7 @@ public sealed class NpkArchive : IDisposable
     public ImgFile LoadImg(NpkEntry entry)
     {
         ThrowIfDisposed();
+        ThrowIfSaving();
         return _images.LoadImg(entry, _reader);
     }
 
@@ -149,30 +158,40 @@ public sealed class NpkArchive : IDisposable
         var selfSave = IsSameFile(path, FilePath);
         var handleReleased = false;
 
+        // 写回自身期间禁止并发按偏移读取：句柄会被释放、条目表会被重建，
+        // 并发的 LoadImg 要么撞上已关闭的句柄，要么读到过期偏移。
+        _saving = selfSave;
         try
         {
-            NpkWriter.WriteFileStreaming(path, sources, selfSave
-                ? () => {
-                    _reader.ReleaseHandle();
-                    handleReleased = true;
-                }
-                : null);
-        }
-        catch
-        {
-            if (handleReleased)
+            try
             {
-                // 替换失败也要让对象恢复可用状态。
-                _reader.Reopen();
+                NpkWriter.WriteFileStreaming(path, sources, selfSave
+                    ? () => {
+                        _reader.ReleaseHandle();
+                        handleReleased = true;
+                    }
+                    : null);
+            }
+            catch
+            {
+                if (handleReleased)
+                {
+                    // 替换失败也要让对象恢复可用状态。
+                    _reader.Reopen();
+                }
+
+                throw;
             }
 
-            throw;
+            if (selfSave)
+            {
+                // 重新打开 + 重解析条目表：文件被替换后偏移可能整体变化，必须刷新。
+                ReloadAfterReplace();
+            }
         }
-
-        if (selfSave)
+        finally
         {
-            // 重新打开 + 重解析条目表：文件被替换后偏移可能整体变化，必须刷新。
-            ReloadAfterReplace();
+            _saving = false;
         }
 
         TraceLog.Instance.Info($"NPK 已保存：{path}（{targets.Count} 条目）。");
@@ -287,14 +306,16 @@ public sealed class NpkArchive : IDisposable
 
     /// <summary>
     ///     取"已修改条目"在保存时要写入的字节。
+    ///     <para>返回 <c>false</c> 表示"按原字节流式直拷即可"（未修改）。</para>
     ///     <para>
-    ///         返回 <c>false</c> 表示"按原字节流式直拷即可"：未修改，或标记了修改但已不在缓存里
-    ///         （后者说明缓存被 LRU 淘汰，只能退回原样拷贝，并记一条告警）。
+    ///         脏条目取不到对应的 <see cref="ImgFile" /> 说明内存状态已不一致：此时必须中止保存，
+    ///         不能退回原字节直拷，否则会产出"内容缺失但保存成功"的文件，比直接失败危险得多。
     ///     </para>
     /// </summary>
     /// <param name="entry">目标条目。</param>
     /// <param name="payload">已修改条目的新字节；返回 <c>false</c> 时为空数组。</param>
     /// <returns>true 表示拿到了需要重新写入的字节。</returns>
+    /// <exception cref="InvalidOperationException">条目已置脏但缓存中找不到对应的 <see cref="ImgFile" />。</exception>
     private bool TryGetModifiedPayload(NpkEntry entry, out byte[] payload)
     {
         payload = [];
@@ -305,8 +326,9 @@ public sealed class NpkArchive : IDisposable
 
         if (!_images.TryGet(entry, out var image) || image is null)
         {
-            TraceLog.Instance.Warn($"条目 \"{entry.Path}\" 标记为已修改但不在缓存中，按原样拷贝。");
-            return false;
+            throw new InvalidOperationException(
+                $"条目 \"{entry.Path}\" 已标记为已修改，但内存中的 IMG 已丢失，继续保存会丢弃这次编辑。" +
+                "已中止保存以保护数据；请重新打开该 NPK 并重做修改（这是一个缺陷，请连同操作步骤一起反馈）。");
         }
 
         payload = image.ToArray();
@@ -316,6 +338,15 @@ public sealed class NpkArchive : IDisposable
     private void ThrowIfDisposed()
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
+    }
+
+    /// <summary>写回自身路径期间拒绝按偏移读取（见 <see cref="_saving" /> 的说明）。</summary>
+    private void ThrowIfSaving()
+    {
+        if (_saving)
+        {
+            throw new InvalidOperationException("正在把该 NPK 写回自身路径，请等待保存完成后再切换条目。");
+        }
     }
 
     /// <summary>

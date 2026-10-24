@@ -3,8 +3,9 @@ namespace NPKStudio.Core.Formats;
 /// <summary>
 ///     IMG 中的一帧。
 ///     <para>
-///         <b>本类型不持有任何位图</b>（D-10 根因）：只保存文件里的原始字节 <see cref="RawData" /> 与几何信息，
-///         解码结果统一由 <c>LruFrameCache</c> 持有。
+///         <b>本类型不持有任何位图</b>（D-10 根因）：只保存文件里的原始字节 <see cref="RawData" /> 与几何信息。
+///         解码结果由桌面层的 <c>FrameImageCache</c> 按帧引用缓存；编辑只会整段换掉 <see cref="RawData" />，
+///         缓存据此自动失效，无需手工通知。
 ///     </para>
 /// </summary>
 public sealed class ImgFrame

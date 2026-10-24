@@ -367,17 +367,17 @@ public sealed class ImgFile
     }
 
     /// <summary>
-    ///     取一帧的未压缩原始像素字节（不做像素格式转换）。
+    ///     取一帧的未压缩原始像素字节（解压 + 去压缩头，<b>不做</b>像素格式转换）。
     /// </summary>
     /// <param name="frame">目标帧。</param>
     /// <returns>
     ///     未压缩像素字节；LINK 帧返回 <c>null</c>（D-04）；
     ///     v5 的纹理帧也返回 <c>null</c>——它的像素在纹理页里，帧本身没有数据区字节。
     /// </returns>
-    public byte[]? Encode(ImgFrame frame)
+    public byte[]? GetUncompressedPixels(ImgFrame frame)
     {
         ArgumentNullException.ThrowIfNull(frame);
-        return Handler.Encode(this, frame);
+        return Handler.ReadUncompressedPixels(this, frame);
     }
 
     /// <summary>

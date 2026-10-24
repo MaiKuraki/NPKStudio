@@ -7,7 +7,7 @@ namespace NPKStudio.Core.Formats.Npk;
 /// <summary>
 ///     NPK 条目表的字节布局与解析（纯函数，无状态、无 IO）。
 ///     <para>
-///         布局（<c>FORMAT-VERIFIED.md</c> §1，真机样本逐字节校准）：
+///         布局（<c>docs/FORMAT.md</c> §1，真机样本逐字节校准）：
 ///         <code>
 /// 0        : "NeoplePack_Bill" + 0x00        16 字节魔数
 /// 16       : int32 count

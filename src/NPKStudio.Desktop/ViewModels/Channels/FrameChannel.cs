@@ -486,7 +486,8 @@ internal sealed class FrameChannel : ViewModelBase
         if (!Inspector.LastCommitResizedPixels || _selectedFrame is not { } frame || View.RawImage is null) return;
 
         // 只有像素尺寸真的变了才重建这一帧的缩略图（结构操作一律复用旧卡片）
-        frame.Thumbnail = DocumentSession.CreateThumbnail(View.RawImage, 90, 86);
+        frame.Thumbnail = DocumentSession.CreateThumbnail(
+            View.RawImage, DocumentSession.ThumbnailMaxWidth, DocumentSession.ThumbnailMaxHeight);
         frame.RefreshMetrics();
     }
 

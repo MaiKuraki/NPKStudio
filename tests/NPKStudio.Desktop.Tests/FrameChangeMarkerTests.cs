@@ -137,6 +137,7 @@ public sealed class FrameChangeMarkerTests
 
         vm.SelectedFrame = vm.Frames[0];
         vm.Inspector.Width = 12;
+        vm.Inspector.CommitPendingSize();
 
         Assert.Equal(12, vm.Frames[0].Frame.Width);
         Assert.True(vm.Frames[0].ChangeKind.HasFlag(FrameChangeKind.Geometry));
@@ -191,6 +192,7 @@ public sealed class FrameChangeMarkerTests
         vm.SelectedFrame = vm.Frames[0];
         vm.InsertFrameAfterSelected();
         vm.Inspector.Width = 12;
+        vm.Inspector.CommitPendingSize();
 
         Assert.True(vm.ChangedFrameCount > 0);
 
@@ -334,14 +336,17 @@ public sealed class FrameChangeMarkerTests
                           $"全量换素材首次 {firstAll.Elapsed.TotalMilliseconds:F3}ms / " +
                           $"全量换素材再刷 {all.TotalMilliseconds:F3}ms");
 
-        Assert.True(steady.TotalMilliseconds < 10,
-            $"500 帧稳态重算应当 < 10ms，实测 {steady.TotalMilliseconds:F2}ms");
-        Assert.True(single.TotalMilliseconds < 10,
-            $"500 帧单帧变更后重算应当 < 10ms，实测 {single.TotalMilliseconds:F2}ms");
-        Assert.True(all.TotalMilliseconds < 50,
-            $"500 帧全量换素材的病态重算应当 < 50ms，实测 {all.TotalMilliseconds:F2}ms");
-        Assert.True(firstAll.Elapsed.TotalMilliseconds < 50,
-            $"500 帧全量换素材（含 9MB 哈希）首次重算应当 < 50ms，实测 {firstAll.Elapsed.TotalMilliseconds:F2}ms");
+        // 阈值按"能拦住复杂度退化"来定，不追求绝对耗时：稳态约 0.2ms、全量换素材首次约 20ms
+        // （含 9MB SHA-256），下面的上限留了几十倍余量，避免在 CI 高负载下抖动，
+        // 同时仍能拦住 O(n²) 级别的退化（那会是秒级）。
+        Assert.True(steady.TotalMilliseconds < 50,
+            $"500 帧稳态重算应当 < 50ms，实际 {steady.TotalMilliseconds:F2}ms");
+        Assert.True(single.TotalMilliseconds < 50,
+            $"500 帧单帧变更后重算应当 < 50ms，实际 {single.TotalMilliseconds:F2}ms");
+        Assert.True(all.TotalMilliseconds < 150,
+            $"500 帧全量换素材的病态重算应当 < 150ms，实际 {all.TotalMilliseconds:F2}ms");
+        Assert.True(firstAll.Elapsed.TotalMilliseconds < 300,
+            $"500 帧全量换素材（含 9MB 哈希）首次重算应当 < 300ms，实际 {firstAll.Elapsed.TotalMilliseconds:F2}ms");
     }
 
     /// <summary>建一个与 <see cref="TestFolder" /> 同构的内存 IMG（不落盘，避免 500 帧用例写文件）。</summary>

@@ -113,6 +113,9 @@ public sealed class FrameInspectorTests
         vm.Inspector.Width = 20;
         vm.Inspector.Height = 16;
 
+        // 宽高提交是防抖的（避免每敲一个字符重采样一次），断言前显式提交
+        vm.Inspector.CommitPendingSize();
+
         Assert.Equal(20, frame.Width);
         Assert.Equal(16, frame.Height);
         Assert.False(vm.Inspector.WidthInvalid);

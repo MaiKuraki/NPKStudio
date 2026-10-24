@@ -26,7 +26,7 @@ public enum SaveChangesChoice {
 ///     </para>
 ///     <para>回车 = 保存，Esc = 取消（默认动作必须是最安全的那个）。</para>
 /// </summary>
-public partial class SaveChangesDialog : Window {
+public sealed partial class SaveChangesDialog : Window {
     private SaveChangesChoice _choice = SaveChangesChoice.Cancel;
 
     public SaveChangesDialog() {

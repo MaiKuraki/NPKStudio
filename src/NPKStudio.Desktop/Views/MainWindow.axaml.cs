@@ -23,7 +23,7 @@ using NPKStudio.Desktop.Views.Dialogs;
 
 namespace NPKStudio.Desktop.Views;
 
-public partial class MainWindow : Window {
+public sealed partial class MainWindow : Window {
     private static TranslationCatalog Loc => TranslationCatalog.Instance;
 
     private const int DwmwaUseImmersiveDarkMode = 20;
@@ -68,6 +68,9 @@ public partial class MainWindow : Window {
     private bool _isFrameDragging;
     private int _dragInsertIndex = -1;
     private RenderTargetBitmap? _dragGhostBitmap;
+
+    /// <summary>帧列表内部的滚动容器（首次拖拽时解析一次，避免每次 PointerMoved 走查可视树）。</summary>
+    private ScrollViewer? _frameListScroll;
 
     private double _leftExpandedWidth = DefaultLeftPanelWidth;
     private double _rightExpandedWidth = DefaultRightPanelWidth;
@@ -259,7 +262,9 @@ public partial class MainWindow : Window {
 
     /// <summary>拖到列表上下边缘时滚动内部 ScrollViewer（每次移动滚一小步，不做惯性）。</summary>
     private void AutoScrollFrameList(Point point) {
-        if (FrameList.GetVisualDescendants().OfType<ScrollViewer>().FirstOrDefault() is not { } scroll) return;
+        // 可视树走查只做一次：拖拽期间每次 PointerMoved 都遍历整棵树 + 分配迭代器是纯浪费。
+        var scroll = _frameListScroll ??= FrameList.GetVisualDescendants().OfType<ScrollViewer>().FirstOrDefault();
+        if (scroll is null) return;
 
         var maxOffset = Math.Max(0, scroll.Extent.Height - scroll.Viewport.Height);
         if (maxOffset <= 0) return;

@@ -1,6 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <assembly manifestVersion="1.0" xmlns="urn:schemas-microsoft-com:asm.v1">
-  <assemblyIdentity name="NPKStudio.Desktop" />
+  <!--
+    assemblyIdentity 的 version / type / processorArchitecture 是 Windows 加载器的必填项：
+    缺 version 会让进程启动直接失败（事件日志报 "The required attribute version is missing
+    from element assemblyIdentity"，用户看到的是 "side-by-side configuration is incorrect"）。
+    version 是清单身份版本，与产品版本无关，保持固定值即可。
+  -->
+  <assemblyIdentity version="1.0.0.0"
+                    name="NPKStudio.Desktop"
+                    type="win32"
+                    processorArchitecture="*" />
   <application xmlns="urn:schemas-microsoft-com:asm.v3">
     <windowsSettings>
       <dpiAwareness xmlns="http://schemas.microsoft.com/SMI/2016/WindowsSettings">PerMonitorV2</dpiAwareness>

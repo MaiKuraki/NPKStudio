@@ -32,7 +32,8 @@ public sealed class NpkRoundTripTests
     {
         if (!SampleFiles.RealSampleAvailable)
         {
-            return;
+            // 真实客户端样本不入库（版权原因）。缺失时标记为未执行，避免把"跳过"计入通过。
+            Assert.Inconclusive($"缺少 {SampleFiles.RealSampleName}：真实客户端快照用例未执行。");
         }
 
         using var archive = NpkArchive.Open(RealSamplePath);
@@ -54,7 +55,8 @@ public sealed class NpkRoundTripTests
     {
         if (!SampleFiles.RealSampleAvailable)
         {
-            return;
+            // 真实客户端样本不入库（版权原因）。缺失时标记为未执行，避免把"跳过"计入通过。
+            Assert.Inconclusive($"缺少 {SampleFiles.RealSampleName}：真实客户端快照用例未执行。");
         }
 
         using var archive = NpkArchive.Open(RealSamplePath);
@@ -91,7 +93,8 @@ public sealed class NpkRoundTripTests
     {
         if (!SampleFiles.RealSampleAvailable)
         {
-            return;
+            // 真实客户端样本不入库（版权原因）。缺失时标记为未执行，避免把"跳过"计入通过。
+            Assert.Inconclusive($"缺少 {SampleFiles.RealSampleName}：真实客户端快照用例未执行。");
         }
 
         using var archive = NpkArchive.Open(RealSamplePath);

@@ -6,7 +6,7 @@ namespace NPKStudio.Core.Imaging;
 /// <summary>
 ///     ARGB1555 / ARGB4444 / ARGB8888 三种像素格式与内部 BGRA8888 之间的编解码。
 ///     <para>
-///         编码严格按 <c>docs/refactor/FORMAT-VERIFIED.md</c> §7 的公式实现，
+///         编码严格按 <c>docs/FORMAT.md</c> §7 的公式实现，
 ///         与解码函数互为逆运算：<c>Encode(Decode(word)) == word</c> 对全部合法字成立。
 ///     </para>
 ///     <para>字节序：1555/4444 为小端 16 位字（低字节在前），8888 直接是 B,G,R,A。</para>
@@ -219,7 +219,7 @@ public static class ColorCodec
     }
 
     /// <summary>
-    ///     编码为 ARGB1555 字（<c>FORMAT-VERIFIED.md</c> §7 公式，与 <see cref="DecodeArgb1555" /> 互逆）。
+    ///     编码为 ARGB1555 字（<c>docs/FORMAT.md</c> §7 公式，与 <see cref="DecodeArgb1555" /> 互逆）。
     ///     <code>
     /// b0 = ((g5 &amp; 0x07) &lt;&lt; 5) | (b &gt;&gt; 3)
     /// b1 = ((a &gt;&gt; 7) &lt;&lt; 7) | ((r &gt;&gt; 3) &lt;&lt; 2) | ((g5 &gt;&gt; 3) &amp; 0x03)   // g5 = (g &gt;&gt; 3) &amp; 0x1F

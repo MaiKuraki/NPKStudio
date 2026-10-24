@@ -176,16 +176,28 @@ public sealed class RgbaImage
         var sourceStride = Stride;
         var targetStride = width * BytesPerPixel;
 
+        // 列映射只算一次。若写在内层循环里，每个像素要付两次 64 位除法（x64 上一次约 20~40 周期）。
+        var columnMap = new int[width];
+        for (var x = 0; x < width; x++)
+        {
+            columnMap[x] = (int)((long)x * Width / width);
+        }
+
         for (var y = 0; y < height; y++)
         {
-            // 最近邻：目标行映射回源行（向下取整），保证不越界。
-            var sourceY = (int)((long)y * Height / height);
-            var sourceRow = sourceY * sourceStride;
+            var sourceRow = (int)((long)y * Height / height) * sourceStride;
             var targetRow = y * targetStride;
+
+            if (width == Width)
+            {
+                // 同宽时只做行搬运：整行一次拷贝，不必逐像素。
+                Buffer.BlockCopy(_pixels, sourceRow, result, targetRow, targetStride);
+                continue;
+            }
+
             for (var x = 0; x < width; x++)
             {
-                var sourceX = (int)((long)x * Width / width);
-                var sourceOffset = sourceRow + sourceX * BytesPerPixel;
+                var sourceOffset = sourceRow + columnMap[x] * BytesPerPixel;
                 var targetOffset = targetRow + x * BytesPerPixel;
                 result[targetOffset] = _pixels[sourceOffset];
                 result[targetOffset + 1] = _pixels[sourceOffset + 1];
@@ -296,6 +308,23 @@ public sealed class RgbaImage
         }
 
         _pixels.AsSpan(y * stride, stride).CopyTo(dest);
+    }
+
+    /// <summary>
+    ///     取一整行的可写跨度，供解码器批量落像素（免掉每像素一次越界检查与方法调用）。
+    ///     <para>寻址仍由本类负责：跨度长度恒为 <c>Width * 4</c>，调用方不得改变数组长度。</para>
+    /// </summary>
+    /// <param name="y">行号，必须在 <c>[0, Height)</c> 内。</param>
+    /// <returns>该行的像素跨度（BGRA，长度 <c>Width * 4</c>）。</returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="y" /> 越界。</exception>
+    public Span<byte> GetRowSpan(int y)
+    {
+        if ((uint)y >= (uint)Height)
+        {
+            throw new ArgumentOutOfRangeException(nameof(y), y, $"行号必须在 [0, {Height}) 范围内。");
+        }
+
+        return _pixels.AsSpan(y * Stride, Stride);
     }
 
     /// <summary>

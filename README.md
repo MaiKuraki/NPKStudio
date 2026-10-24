@@ -9,8 +9,10 @@ A viewer and editor for DNF `.NPK` / `.img` game resources, rewritten with [Aval
 ## 功能
 
 - **打开** `.NPK` 资源包、单个 `.img`，或整个文件夹（子文件夹视为一个 NPK）；支持拖放
-- **帧浏览**：条目列表走 Avalonia 默认虚拟化面板；帧缩略图按显示尺寸解码，超过 80 帧只生成前 80 张（点选仍可查看与导出）
-- **播放**：9 档倍率（0.25×–4×，1× = 8 fps）、循环、空格键播放/暂停、方向键逐帧
+- **帧浏览**：条目列表使用 Avalonia 默认虚拟化面板；帧缩略图在后台按显示尺寸补齐（最多 80 张），
+  帧列表即时出现，缩略图随后逐张回填
+- **播放**：9 档倍率（0.25×–4×，1× = 8 fps）、循环、空格键播放/暂停、方向键逐帧；
+  解码结果按帧缓存（预算 64MB），循环播放从第二圈起不再解码
 - **帧编辑**：替换素材（PNG/BMP/JPG）、插入、删除、上移/下移、改坐标与宽高、拖拽排序
 - **撤销 / 重做**：Ctrl+Z / Ctrl+Y，栈深 50，变更标记告诉你动过哪几帧
 - **隐藏帧**：H 键临时隐藏，只影响预览与播放，不改文件
@@ -104,6 +106,7 @@ NPKStudio.exe --pack "<导出根目录>" --manifest "<清单.txt>" --out "<输�
 ├─ docs/
 │  ├─ 使用说明.txt             面向使用者的中文教程
 │  ├─ ARCHITECTURE.md          内部架构说明
+│  ├─ FORMAT.md                NPK / IMG 字节布局（按实现整理）
 │  └─ images/                  README 截图（均由合成样本生成）
 ├─ Directory.Build.props       公共编译属性
 └─ NPKStudio.sln
@@ -128,7 +131,7 @@ NPKStudio.exe --pack "<导出根目录>" --manifest "<清单.txt>" --out "<输�
 
 ## 许可证
 
-[MIT](LICENSE) © 2026 NPKStudio contributors
+[MIT](LICENSE) © 2026 CycloneMagnum
 
 格式层的实现参考了 [ExtractorSharp](https://github.com/d-mod/ExtractorSharp)（MIT，© 2017 Kritsu）的源码并重写。
 

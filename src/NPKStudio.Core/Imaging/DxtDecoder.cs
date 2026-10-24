@@ -21,8 +21,8 @@ public enum DxtFormat
 ///     DXT1/DXT3/DXT5 解码器，按 Khronos（S3TC / BCn）规范重写，输出 BGRA8888。
 ///     <para>
 ///         <b>块内像素顺序</b>：块内索引 <c>i</c>（0..15）对应 <c>x = i % 4</c>、<c>y = i / 4</c>。
-///         绝对坐标由 <see cref="RgbaImage.SetPixel" /> 唯一负责寻址，
-///         本类<b>不出现任何手写字节偏移</b>（D-18 的根因就是解码器自己算 <c>4*(height*..+..)</c>）。
+///         行跨度由 <see cref="RgbaImage.GetRowSpan" /> 唯一提供，本类只在行内按 <c>x * 4</c> 落 4 个字节；
+///         绝不自己算 <c>4*(height*..+..)</c> 那种全图偏移（D-18 的根因）。
 ///     </para>
 ///     <para>
 ///         <b>块字节顺序</b>：DXT3/DXT5 先 8 字节 alpha 块、后 8 字节色彩块（D-16：原实现颠倒）；
@@ -111,22 +111,40 @@ public static class DxtDecoder
 
                 BuildColorTable(c0, c1, format, colors);
 
-                for (var i = 0; i < 16; i++)
+                // 按行落像素：每行只取一次跨度（行内寻址由 RgbaImage 负责），
+                // 比逐像素 SetPixel 少一半以上的边界检查与调用开销。
+                var baseX = blockX * 4;
+                for (var row = 0; row < 4; row++)
                 {
-                    var x = blockX * 4 + (i % 4);
-                    var y = blockY * 4 + (i / 4);
-                    if (x >= width || y >= height)
+                    var y = blockY * 4 + row;
+                    if (y >= height)
                     {
-                        continue;
+                        break;
                     }
 
-                    var paletteIndex = (int)((indices >> (i * 2)) & 0x03);
-                    var color = colors[paletteIndex];
+                    var line = target.GetRowSpan(y);
+                    for (var col = 0; col < 4; col++)
+                    {
+                        var x = baseX + col;
+                        if (x >= width)
+                        {
+                            break;
+                        }
 
-                    // 像素落盘唯一入口：SetPixel 内部按 (y * Width + x) * 4 寻址。
-                    target.SetPixel(x, y, format == DxtFormat.Dxt1
-                        ? color
-                        : new Color32(color.R, color.G, color.B, alphas[i]));
+                        var i = (row * 4) + col;
+                        var paletteIndex = (int)((indices >> (i * 2)) & 0x03);
+                        var color = colors[paletteIndex];
+                        if (format != DxtFormat.Dxt1)
+                        {
+                            color = new Color32(color.R, color.G, color.B, alphas[i]);
+                        }
+
+                        var offset = x * 4;
+                        line[offset] = color.B;
+                        line[offset + 1] = color.G;
+                        line[offset + 2] = color.R;
+                        line[offset + 3] = color.A;
+                    }
                 }
             }
         }

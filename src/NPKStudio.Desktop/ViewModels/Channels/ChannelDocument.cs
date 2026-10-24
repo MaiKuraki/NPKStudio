@@ -111,6 +111,7 @@ internal sealed class ChannelDocument
             _owner.SelectedFrames.Clear();
             _session.ClearImage();
             _owner.View.ClearCurrentImage();
+            _owner.View.ResetFrameCache();
             _owner.View.ResetCanvasBounds(null);
             _owner.Editor.Detach();
             _frameLoadError = null;
@@ -121,6 +122,9 @@ internal sealed class ChannelDocument
 
         _owner.IsBusy = true;
         _owner.Status = Loc.F("status.parsingImage", item.Name);
+
+        // 先丢掉上一个 IMG 的位图缓存：既释放内存，也让在途的预解任务按代次立即停手。
+        _owner.View.ResetFrameCache();
         try {
             var result = await _session.LoadFramesAsync(item);
 
@@ -142,12 +146,23 @@ internal sealed class ChannelDocument
 
             if (result.Image is not null) {
                 _owner.Status = Loc.F("status.frameLoaded", item.Name, result.Frames.Count, (int)result.Image.Version);
+
+                // 后台预解：把首圈播放的解码开销提前摊掉（预算内全量，超预算自动停手）。
+                _owner.View.PrefetchFrames(result.Image, result.Frames);
             }
 
             NotifyVersionSupport();
 
             // 放到最后：选中帧会触发 UpdateCurrentImage，可能写入"线减大面积透明"提示，不能被覆盖
             _owner.SelectedFrame = result.Selected;
+
+            // 帧列表此刻已经入列（首屏可见），再等后台缩略图收尾：
+            // 既不拖慢首屏，也不让调度回调跑到本次加载之外。
+            try {
+                await result.Thumbnails;
+            } catch {
+                // 缩略图失败不影响文档可用性（画布与导出各自会如实报错）
+            }
         } catch (OperationCanceledException) {
             return;
         } catch (Exception ex) {
@@ -159,6 +174,7 @@ internal sealed class ChannelDocument
             _owner.SelectedFrames.Clear();
             _session.ClearImage();
             _owner.View.ClearCurrentImage();
+            _owner.View.ResetFrameCache();
             _owner.View.ResetCanvasBounds(null);
             _owner.Editor.Detach();
             NotifyVersionSupport();
@@ -176,6 +192,7 @@ internal sealed class ChannelDocument
         _owner.SelectedFrames.Clear();
         _session.Dispose();
         _owner.View.ClearCurrentImage();
+        _owner.View.ResetFrameCache();
         _owner.FileName = "NPKStudio";
         _owner.Editor.Detach();
         _frameLoadError = null;
@@ -201,13 +218,18 @@ internal sealed class ChannelDocument
         }
 
         _owner.Status = Loc["status.saving"];
-        var r = await _files.SaveAsync(path, _owner.SelectedEntry);
-        _owner.Status = r.StatusMessage;
+        _owner.IsBusy = true;   // 保存期间禁用条目列表：否则会在后台重开句柄 / 重建条目表时读到旧偏移
+        try {
+            var r = await _files.SaveAsync(path, _owner.SelectedEntry);
+            _owner.Status = r.StatusMessage;
 
-        // 写回成功才清脏：失败时继续保留 ●；同时拍新基线，所有变更标记随之归零
-        if (r.Success) {
-            _owner.Editor.MarkSaved();
-            _owner.Editor.RefreshChangeMarkers();
+            // 写回成功才清脏：失败时继续保留 ●；同时拍新基线，所有变更标记随之归零
+            if (r.Success) {
+                _owner.Editor.MarkSaved();
+                _owner.Editor.RefreshChangeMarkers();
+            }
+        } finally {
+            _owner.IsBusy = false;
         }
     }
 
@@ -240,11 +262,16 @@ internal sealed class ChannelDocument
         }
 
         _owner.Status = Loc["status.saving"];
-        var r = await _files.SaveArchiveAsync(path);
-        _owner.Status = r.StatusMessage;
-        if (r.Success) {
-            _owner.Editor.MarkSaved();
-            _owner.Editor.RefreshChangeMarkers();
+        _owner.IsBusy = true;
+        try {
+            var r = await _files.SaveArchiveAsync(path);
+            _owner.Status = r.StatusMessage;
+            if (r.Success) {
+                _owner.Editor.MarkSaved();
+                _owner.Editor.RefreshChangeMarkers();
+            }
+        } finally {
+            _owner.IsBusy = false;
         }
     }
 

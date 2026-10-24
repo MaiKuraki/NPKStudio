@@ -1,3 +1,5 @@
+using System.Runtime.CompilerServices;
+
 using NPKStudio.Core.Exceptions;
 using NPKStudio.Core.Imaging;
 
@@ -160,7 +162,11 @@ internal static class PaletteIndexCodec
 
     /// <summary>
     ///     把 BGRA8888 反向量化为色号：色表里有的颜色精确命中，没有的取欧氏距离最近的一项。
-    ///     <para>色表最多 256 项，直接线性扫描；单次编码是用户操作路径，不是热路径。</para>
+    ///     <para>
+    ///         精确命中走一次打包查表（O(1)），只有"色表里没有的颜色"才进线性扫描。
+    ///         依据：补丁素材绝大多数本来就是用这张色表画的，逐像素扫 256 项是纯浪费
+    ///         （609×554 时是 8,600 万次比较）。
+    ///     </para>
     ///     <para>
     ///         距离包含 alpha，因此全透明像素会优先命中色表里的透明项（A=0）；
     ///         若色表里没有透明项，透明像素只能退化为最近的实色——这与 v4/v6 的调色板模型一致。
@@ -183,16 +189,38 @@ internal static class PaletteIndexCodec
             throw new ImgFormatException($"帧 #{frameIndex} 所在 IMG 没有色表，无法把像素量化为色号。");
         }
 
+        // 精确命中表：重复色取第一个下标，与线性扫描的"首个距离 0 立即返回"语义一致。
+        var exact = new Dictionary<uint, byte>(palette.Count);
+        for (var i = 0; i < palette.Count; i++)
+        {
+            exact.TryAdd(Pack(palette[i]), (byte)i);
+        }
+
         var pixelCount = bgra.Length / 4;
         var result = new byte[pixelCount];
         for (var i = 0; i < pixelCount; i++)
         {
             var offset = i * 4;
+            var key = Pack(bgra[offset], bgra[offset + 1], bgra[offset + 2], bgra[offset + 3]);
+            if (exact.TryGetValue(key, out var hit))
+            {
+                result[i] = hit;
+                continue;
+            }
+
             result[i] = FindNearest(bgra[offset], bgra[offset + 1], bgra[offset + 2], bgra[offset + 3], palette);
         }
 
         return result;
     }
+
+    /// <summary>把 BGRA 四通道打包成一个键，供精确命中查表。</summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static uint Pack(byte b, byte g, byte r, byte a) =>
+        b | ((uint)g << 8) | ((uint)r << 16) | ((uint)a << 24);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static uint Pack(Color32 color) => Pack(color.B, color.G, color.R, color.A);
 
     /// <summary>
     ///     在色表中找与指定 BGRA 最接近的项（含 alpha 的平方欧氏距离），精确命中立即返回。

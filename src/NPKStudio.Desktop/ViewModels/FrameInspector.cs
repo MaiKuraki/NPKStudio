@@ -1,3 +1,5 @@
+using Avalonia.Threading;
+
 using NPKStudio.Core.Formats;
 using NPKStudio.Desktop.Localization;
 using NPKStudio.Desktop.Services;
@@ -37,6 +39,18 @@ internal sealed class FrameInspector : ViewModelBase {
     private string _statusMessage = string.Empty;
     private int _geometryVersion;
     private bool _lastCommitResizedPixels;
+
+    /// <summary>宽高提交防抖窗口。改动走"重采样 + 重编码"，不能每敲一个字符做一次。</summary>
+    private static readonly TimeSpan SizeCommitDelay = TimeSpan.FromMilliseconds(250);
+
+    /// <summary>
+    ///     防抖定时器（<b>惰性创建</b>）：只有真的改过宽高才需要它。
+    ///     检查器在每个通道构造时都会建一个实例，给"从不改尺寸"的场景无条件挂一个
+    ///     <c>DispatcherTimer</c> 是无谓的宿主依赖。
+    /// </summary>
+    private DispatcherTimer? _sizeCommitTimer;
+
+    private bool _sizeDirty;
 
     public FrameInspector(DocumentSession session) => _session = session;
 
@@ -170,22 +184,55 @@ internal sealed class FrameInspector : ViewModelBase {
         }
     }
 
+    /// <summary>
+    ///     目标宽度。改动不立即提交：<c>NumericUpDown</c> 每敲一个字符就回写 <c>Value</c>，
+    ///     立即提交会让输入 "300" 依次按 3、30、300 重采样三次，每次都以上一次的结果为源，
+    ///     图像质量逐次下降，撤销栈也会多出两步。
+    /// </summary>
     public decimal? Width {
         get => _width;
         set {
             _width = value;
             OnPropertyChanged();
-            if (!_pushing) ApplySize();
+            if (!_pushing) ScheduleSizeCommit();
         }
     }
 
+    /// <summary>
+    ///     目标高度（与 <see cref="Width" /> 同一个防抖窗口，两者一起提交）。
+    /// </summary>
     public decimal? Height {
         get => _height;
         set {
             _height = value;
             OnPropertyChanged();
-            if (!_pushing) ApplySize();
+            if (!_pushing) ScheduleSizeCommit();
         }
+    }
+
+    /// <summary>标记宽高待提交并重置防抖窗口。</summary>
+    private void ScheduleSizeCommit() {
+        _sizeDirty = true;
+
+        if (_sizeCommitTimer is null) {
+            _sizeCommitTimer = new DispatcherTimer { Interval = SizeCommitDelay };
+            _sizeCommitTimer.Tick += (_, _) => CommitPendingSize();
+        }
+
+        _sizeCommitTimer.Stop();
+        _sizeCommitTimer.Start();
+    }
+
+    /// <summary>
+    ///     立刻提交待处理的宽高（防抖窗口内也能落盘）。
+    ///     <para>切换选区、关闭窗口、以及自动化 / 单测需要"设值即生效"时调用。</para>
+    /// </summary>
+    public void CommitPendingSize() {
+        _sizeCommitTimer?.Stop();
+        if (!_sizeDirty) return;
+
+        _sizeDirty = false;
+        ApplySize();
     }
 
     public bool XInvalid => _xInvalid;
@@ -198,6 +245,9 @@ internal sealed class FrameInspector : ViewModelBase {
 
     /// <summary>把选区同步进来：<paramref name="primary" /> 是"当前帧"，<paramref name="selectionCount" /> 是选区帧数。</summary>
     public void Show(FrameViewModel? primary, int selectionCount) {
+        // 先把待提交的宽高写到当前帧上，再切换选区，避免丢弃用户刚输入的值。
+        CommitPendingSize();
+
         _frame = primary?.Frame;
         _selectionCount = _frame is null ? 0 : Math.Max(1, selectionCount);
 

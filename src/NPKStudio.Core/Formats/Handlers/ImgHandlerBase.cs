@@ -7,7 +7,7 @@ namespace NPKStudio.Core.Formats.Handlers;
 /// <summary>
 ///     v2 系（v2/v4/v5/v6 共用的"索引区 + 数据区"骨架）处理器的基类。
 ///     <para>
-///         字节布局见 <c>FORMAT-VERIFIED.md</c> §2：
+///         字节布局见 <c>docs/FORMAT.md</c> §2：
 ///         <code>
 /// int32 type                 // 0x0E/0x0F/0x10/0x11(LINK)/0x12~0x14(DXT)
 /// if LINK: int32 targetIndex             → 共 8 字节
@@ -58,7 +58,7 @@ public abstract class ImgHandlerBase : IImgHandler
             return null;
         }
 
-        var pixels = Encode(file, frame) ?? throw new ImgFormatException($"帧 #{frame.Index} 无数据可解码。");
+        var pixels = ReadUncompressedPixels(file, frame) ?? throw new ImgFormatException($"帧 #{frame.Index} 无数据可解码。");
         var count = ComputePixelCount(frame, BytesPerPixel(frame.Type));
 
         if (frame.Type == ColorBits.ARGB_8888)
@@ -70,7 +70,7 @@ public abstract class ImgHandlerBase : IImgHandler
     }
 
     /// <inheritdoc />
-    public virtual byte[]? Encode(ImgFile file, ImgFrame frame)
+    public virtual byte[]? ReadUncompressedPixels(ImgFile file, ImgFrame frame)
     {
         ArgumentNullException.ThrowIfNull(file);
         ArgumentNullException.ThrowIfNull(frame);
@@ -202,7 +202,7 @@ public abstract class ImgHandlerBase : IImgHandler
 
             if (frame.Compress == CompressMode.NONE)
             {
-                // FORMAT-VERIFIED §6：NONE 时用几何推导长度覆盖索引里的值，防脏数据。
+                // docs/FORMAT.md §3：NONE 时用几何推导长度覆盖索引里的值，防脏数据。
                 frame.Length = (int)((long)frame.Width * frame.Height * pixelBytes);
             }
 

@@ -157,7 +157,8 @@ internal sealed class FrameEditPresenter : ViewModelBase
             var card = _frames.FirstOrDefault(item => ReferenceEquals(item.Frame, frame));
             if (card is null) continue;
 
-            card.Thumbnail = DocumentSession.CreateThumbnail(DecodeQuietly(frame), 90, 86);
+            card.Thumbnail = DocumentSession.CreateThumbnail(
+                DecodeQuietly(frame), DocumentSession.ThumbnailMaxWidth, DocumentSession.ThumbnailMaxHeight);
             card.RefreshMetrics();
         }
 
@@ -178,7 +179,8 @@ internal sealed class FrameEditPresenter : ViewModelBase
         var result = await _workspace.ReplaceFrameAsync(_session.CurrentImg, current, imagePath);
         if (result.Success && result.Image is not null && result.Frame is not null) {
             Record();
-            result.Frame.Thumbnail = DocumentSession.CreateThumbnail(result.Image, 90, 86);
+            result.Frame.Thumbnail = DocumentSession.CreateThumbnail(
+                result.Image, DocumentSession.ThumbnailMaxWidth, DocumentSession.ThumbnailMaxHeight);
         }
 
         return result;

@@ -6,7 +6,7 @@ namespace NPKStudio.Core.Formats.Handlers;
 /// <summary>
 ///     v1（<c>"Neople Image File"</c>）处理器。
 ///     <para>
-///         与 v2 的根本区别（<c>FORMAT-VERIFIED.md</c> §3）：<b>帧数据内联在索引流里</b>，
+///         与 v2 的根本区别（<c>docs/FORMAT.md</c> §3）：<b>帧数据内联在索引流里</b>，
 ///         没有独立数据区，因此读取是"读一帧索引 → 立刻读该帧 <c>Length</c> 字节数据"的循环，
 ///         <b>不能复用 v2 的"先索引后数据"</b>。
 ///     </para>

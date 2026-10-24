@@ -69,5 +69,8 @@ $RECYCLE.BIN/
 TestResults/
 .idea/
 
+# 工作区内的助手记忆 / 会话缓存，不属于代码
+.workbuddy/
+
 __pycache__/
 *.pyc

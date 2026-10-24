@@ -24,22 +24,23 @@ public sealed class FrameExportTests
         using var folder = TestFolder.Create();
         var image = BuildImage(3, 4, 4, offsetStep: 1);
         var frames = ToViewModels(image);
+        var items = new List<PngBatchItem>();
 
-        var plan = FrameExportService.PlanPngBatch(image, frames, folder.Path, "walk");
+        var outcome = FrameExportService.ForEachDecodableFrame(image, frames, folder.Path, "walk", items.Add);
 
-        Assert.Equal(0, plan.Failed);
-        Assert.Null(plan.FirstError);
-        Assert.Equal(3, plan.Items.Count);
-        for (var i = 0; i < plan.Items.Count; i++)
+        Assert.Equal(0, outcome.Failed);
+        Assert.Null(outcome.FirstError);
+        Assert.Equal(3, outcome.Succeeded);
+        Assert.Equal(3, items.Count);
+        for (var i = 0; i < items.Count; i++)
         {
-            var item = plan.Items[i];
-            Assert.Equal(Path.Combine(folder.Path, $"walk_{i:D3}.png"), item.Path);
-            Assert.Equal(4, item.Pixels.Width);
-            Assert.Equal(4, item.Pixels.Height);
+            Assert.Equal(Path.Combine(folder.Path, $"walk_{i:D3}.png"), items[i].Path);
+            Assert.Equal(4, items[i].Pixels.Width);
+            Assert.Equal(4, items[i].Pixels.Height);
         }
     }
 
-    /// <summary>批量 PNG：中间一帧解码失败不中断其余帧，计划里给出"2 成功 / 1 失败"。</summary>
+    /// <summary>批量 PNG：中间一帧解码失败不中断其余帧，结果为"2 成功 / 1 失败"。</summary>
     [AvaloniaFact]
     public void PngBatch_PlanContinuesAfterCorruptFrame()
     {
@@ -47,14 +48,16 @@ public sealed class FrameExportTests
         var image = BuildImage(3, 4, 4, offsetStep: 1);
         image.Frames[1].RawData = [0x00]; // 非法 zlib 数据 → 解码必然失败
         var frames = ToViewModels(image);
+        var items = new List<PngBatchItem>();
 
-        var plan = FrameExportService.PlanPngBatch(image, frames, folder.Path, "walk");
+        var outcome = FrameExportService.ForEachDecodableFrame(image, frames, folder.Path, "walk", items.Add);
 
-        Assert.Equal(2, plan.Items.Count);
-        Assert.Equal(1, plan.Failed);
-        Assert.False(string.IsNullOrWhiteSpace(plan.FirstError));
-        Assert.Equal("walk_000.png", Path.GetFileName(plan.Items[0].Path));
-        Assert.Equal("walk_002.png", Path.GetFileName(plan.Items[1].Path));
+        Assert.Equal(2, outcome.Succeeded);
+        Assert.Equal(2, items.Count);
+        Assert.Equal(1, outcome.Failed);
+        Assert.False(string.IsNullOrWhiteSpace(outcome.FirstError));
+        Assert.Equal("walk_000.png", Path.GetFileName(items[0].Path));
+        Assert.Equal("walk_002.png", Path.GetFileName(items[1].Path));
     }
 
     /// <summary>GIF：写出 GIF89a，逻辑屏尺寸 = 各帧按 X/Y 合成后的联合包围盒。</summary>

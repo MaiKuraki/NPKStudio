@@ -9,7 +9,7 @@
     <!-- 禁止 JSON 反射回退：若某处仍走反射序列化，运行时直接抛异常，强制暴露 -->
     <JsonSerializerIsReflectionEnabledByDefault>false</JsonSerializerIsReflectionEnabledByDefault>
 
-    <Version>1.0.7</Version>
+    <Version>1.0.8</Version>
     <Product>NPKStudio</Product>
     <AssemblyTitle>NPKStudio</AssemblyTitle>
     <Description>DNF NPK / IMG resource editor and packer</Description>

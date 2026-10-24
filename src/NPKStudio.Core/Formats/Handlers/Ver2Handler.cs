@@ -5,7 +5,7 @@ namespace NPKStudio.Core.Formats.Handlers;
 /// <summary>
 ///     v2（<c>"Neople Img File"</c>）处理器，也是 v4/v6 的骨架基础。
 ///     <para>
-///         布局（<c>FORMAT-VERIFIED.md</c> §2）：公共头 32 字节 → 索引区（<c>IndexLength</c> 字节）→ 数据区。
+///         布局（<c>docs/FORMAT.md</c> §2）：公共头 32 字节 → 索引区（<c>IndexLength</c> 字节）→ 数据区。
 ///         数据区按帧顺序<b>只</b>存放非 LINK 帧的 <c>Length</c> 字节，LINK 帧不占数据区。
 ///     </para>
 /// </summary>

@@ -133,7 +133,8 @@
                        Background="Transparent"
                        BorderThickness="0"
                        Padding="6,0"
-                       IsVisible="{Binding HasEntries}">
+                       IsVisible="{Binding HasEntries}"
+                       IsEnabled="{Binding !IsBusy}">
                 <ListBox.ItemTemplate>
                   <DataTemplate DataType="vm:EntryItem">
                     <Grid ColumnDefinitions="16,8,*,Auto" Height="30">

@@ -9,6 +9,11 @@ namespace NPKStudio.Core.Formats.Npk;
 ///         这里只负责"按条目缓存已解析的 <see cref="ImgFile" />，超容量按最久未用淘汰"。
 ///     </para>
 ///     <para>
+///         <b>淘汰不变量</b>：已置脏（<see cref="NpkEntry.IsModified" />）的条目永不淘汰，MRU 也不淘汰。
+///         缓存里这份 <see cref="ImgFile" /> 是编辑结果的唯一载体，淘汰它等于把用户的修改丢掉。
+///         宁可超容量，也不能丢编辑。
+///     </para>
+///     <para>
 ///         解析需要读原始字节，因此由调用方传入 <see cref="NpkRawReader" />（<b>直接方法调用，不走委托</b>）。
 ///     </para>
 /// </summary>
@@ -106,18 +111,47 @@ internal sealed class NpkImageCache
         }
     }
 
+    /// <summary>
+    ///     超容量时按 LRU 淘汰，<b>跳过所有已修改条目</b>；全是脏条目时停止淘汰（宁可超容量）。
+    /// </summary>
     private void Trim()
     {
         while (_map.Count > Capacity)
         {
-            var last = _order.Last;
-            if (last is null)
+            var victim = FindEvictable();
+            if (victim is null)
+            {
+                // 缓存里全是未保存的编辑：不淘汰。它们必须活到 Save 之后。
+                break;
+            }
+
+            _order.Remove(victim);
+            _map.Remove(victim.Value.Key);
+        }
+    }
+
+    /// <summary>从最久未用的一端往前找第一个"未修改"的节点。</summary>
+    /// <remarks>
+    ///     <b>绝不淘汰 MRU（刚交给调用方的那一条）</b>：<see cref="LoadImg" /> 返回后调用方才去做编辑，
+    ///     若在"已解析、尚未置脏"这段窗口里把它挤掉，随后的编辑就落在一个不在缓存里的对象上，
+    ///     保存时会被判定为"脏条目丢失"。这一条比"严格不超容量"重要。
+    /// </remarks>
+    private LinkedListNode<KeyValuePair<NpkEntry, ImgFile>>? FindEvictable()
+    {
+        var head = _order.First;
+        for (var node = _order.Last; node is not null; node = node.Previous)
+        {
+            if (ReferenceEquals(node, head))
             {
                 break;
             }
 
-            _order.RemoveLast();
-            _map.Remove(last.Value.Key);
+            if (!node.Value.Key.IsModified)
+            {
+                return node;
+            }
         }
+
+        return null;
     }
 }

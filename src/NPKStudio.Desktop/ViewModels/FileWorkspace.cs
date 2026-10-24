@@ -82,12 +82,25 @@ internal sealed class FileWorkspace
         }
     }
 
+    /// <summary>
+    ///     用一张图片替换某帧。解码、量化、zlib 压缩全部在后台线程完成。
+    ///     <para>
+    ///         v4/v6 的量化要逐像素扫描色表，之后还要重新压缩；这一段若留在 UI 线程，
+    ///         大帧（600×550 量级）会造成可见停顿。
+    ///     </para>
+    ///     <para>调用方必须先停止播放，避免后台写帧字段时被渲染线程读到半成品状态。</para>
+    /// </summary>
     public async Task<ReplaceResult> ReplaceFrameAsync(ImgFile image, FrameViewModel frame, string imagePath)
     {
         try
         {
-            var rgba = await Task.Run(() => ImageIo.Load(imagePath));
-            image.ReplaceFrameImage(frame.Frame, rgba, ColorBits.UNKNOWN);
+            var rgba = await Task.Run(() =>
+            {
+                var decoded = ImageIo.Load(imagePath);
+                image.ReplaceFrameImage(frame.Frame, decoded, ColorBits.UNKNOWN);
+                return decoded;
+            });
+
             return new ReplaceResult(true, Loc.F("status.replaced", frame.IndexText, rgba.Width, rgba.Height), rgba, frame);
         }
         catch (Exception ex)

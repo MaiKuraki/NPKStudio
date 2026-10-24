@@ -345,7 +345,7 @@ public sealed class Ver5Tests
         Assert.AreSame(image.Frames[0], image.Frames[1].LinkTarget);
         Assert.IsNull(image.Frames[1].Texture, "LINK 帧没有自己的 UV");
         Assert.IsNull(image.Decode(image.Frames[1]), "LINK 帧解码返回 null（D-04）");
-        Assert.IsNull(image.Encode(image.Frames[1]), "LINK 帧编码返回 null（D-04）");
+        Assert.IsNull(image.GetUncompressedPixels(image.Frames[1]), "LINK 帧编码返回 null（D-04）");
         Assert.AreEqual((long)(FrameIndexSize + TextureUvSize + LinkIndexSize), image.IndexLength, "LINK 只占 8 字节");
 
         var reread = RoundTrip(image, "v5-link.img");
