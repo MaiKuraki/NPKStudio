@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>NPKStudio.Benchmarks</RootNamespace>
+    <AssemblyName>NPKStudio.Benchmarks</AssemblyName>
+    <ServerGarbageCollection>false</ServerGarbageCollection>
+    <ConcurrentGarbageCollection>false</ConcurrentGarbageCollection>
+    <TieredPGO>true</TieredPGO>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\NPKStudio.Core\NPKStudio.Core.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- 样本定位工具：与两个测试工程共享同一份源码（链接编译） -->
+    <Compile Include="..\SampleFiles.cs" Link="SampleFiles.cs" />
+    <None Include="..\samples\*.NPK" Link="samples\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

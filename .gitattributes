@@ -1,0 +1,33 @@
+# 默认：文本文件统一 LF，检出时不做平台转换
+* text=auto eol=lf
+
+# 源码与配置（显式声明为文本，避免被 auto 误判）
+*.cs       text eol=lf
+*.csproj   text eol=lf
+*.props    text eol=lf
+*.sln      text eol=crlf
+*.axaml    text eol=lf
+*.json     text eol=lf
+*.yml      text eol=lf
+*.md       text eol=lf
+*.py       text eol=lf
+*.txt      text eol=lf
+
+# 二进制：禁止换行转换、禁止文本 diff
+*.png   binary
+*.ico   binary
+*.bmp   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.zip   binary
+*.exe   binary
+*.dll   binary
+
+# DNF 资源文件，扩展名大小写都有
+*.NPK binary
+*.npk binary
+*.IMG binary
+*.img binary
+*.OGG binary
+*.ogg binary

@@ -1,0 +1,192 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <ResourceDictionary.ThemeDictionaries>
+
+    <!-- 浅色主题：面板靠 1px 描边分层，不用阴影 -->
+    <ResourceDictionary x:Key="Light">
+      <SolidColorBrush x:Key="BgCanvas" Color="#F7F8FA" />
+      <SolidColorBrush x:Key="SurfacePanel" Color="#FFFFFF" />
+      <SolidColorBrush x:Key="SurfaceRaised" Color="#FFFFFF" />
+      <SolidColorBrush x:Key="BorderDefault" Color="#E3E6EB" />
+      <SolidColorBrush x:Key="BorderStrong" Color="#CDD2DA" />
+      <SolidColorBrush x:Key="AccentPrimary" Color="#2F6BFF" />
+      <SolidColorBrush x:Key="AccentHover" Color="#1F57E6" />
+      <SolidColorBrush x:Key="AccentSubtle" Color="#EAF1FF" />
+      <SolidColorBrush x:Key="TextPrimary" Color="#1B1F26" />
+      <SolidColorBrush x:Key="TextSecondary" Color="#6B7280" />
+      <SolidColorBrush x:Key="TextDisabled" Color="#A3A9B5" />
+      <SolidColorBrush x:Key="StateHoverBg" Color="#F0F2F5" />
+      <SolidColorBrush x:Key="StateSelectedBg" Color="#EAF1FF" />
+      <SolidColorBrush x:Key="StateDanger" Color="#E5484D" />
+      <SolidColorBrush x:Key="StateWarning" Color="#F5A524" />
+      <SolidColorBrush x:Key="StateSuccess" Color="#17A673" />
+      <!-- 帧变更角标「新」的文字色：浅色下 StateSuccess 偏深 → 白字；深色下偏亮 → 深字 -->
+      <SolidColorBrush x:Key="FrameChangeBadgeText" Color="#FFFFFF" />
+      <SolidColorBrush x:Key="ToolbarBg" Color="#FFFFFF" />
+      <SolidColorBrush x:Key="StatusBarBg" Color="#FFFFFF" />
+      <SolidColorBrush x:Key="CheckerA" Color="#FFFFFF" />
+      <SolidColorBrush x:Key="CheckerB" Color="#E6E9EE" />
+      <SolidColorBrush x:Key="FrameOuterArea" Color="#E9EBF0" />
+      <SolidColorBrush x:Key="FrameBorderBrush" Color="#A6407BFF" />
+
+      <!-- 画布右下角的缩放气泡：半透明深底 + 白字，两个主题都用深底（浮在图像上必须够对比） -->
+      <SolidColorBrush x:Key="ZoomBubbleBg" Color="#D91B1F26" />
+      <SolidColorBrush x:Key="ZoomBubbleText" Color="#FFFFFF" />
+
+      <!-- 画布标尺 / 参考线：标尺底色比画布略深一档；十字线是 AccentPrimary 100% 不透明版 -->
+      <SolidColorBrush x:Key="RulerBg" Color="#F2F4F7" />
+      <SolidColorBrush x:Key="RulerTick" Color="#98A1AE" />
+      <SolidColorBrush x:Key="CanvasCrosshair" Color="#2F6BFF" />
+
+      <!-- 参考线：纯 1px，不叠黑影；浅色下用更深的橙，压在白/浅灰棋盘格上对比度足够 -->
+      <SolidColorBrush x:Key="GuideLine" Color="#E04E00" />
+
+      <!-- 参考线坐标标签：底色用参考线本色（整体再被 0.75 的组不透明度压淡），文字用深色，压在任何画布内容上都读得清 -->
+      <SolidColorBrush x:Key="GuideLabelBg" Color="#FF6B00" />
+      <SolidColorBrush x:Key="GuideLabelText" Color="#1B1F26" />
+
+      <!-- 透明区域棋盘格：16px 方块、屏幕空间固定尺寸，不随画布缩放变化 -->
+      <DrawingBrush x:Key="TransparencyChecker" TileMode="Tile"
+                    DestinationRect="0,0,16,16" SourceRect="0,0,16,16" Stretch="None">
+        <DrawingBrush.Drawing>
+          <DrawingGroup>
+            <GeometryDrawing Brush="{StaticResource CheckerA}">
+              <GeometryDrawing.Geometry>
+                <RectangleGeometry Rect="0,0,16,16" />
+              </GeometryDrawing.Geometry>
+            </GeometryDrawing>
+            <GeometryDrawing Brush="{StaticResource CheckerB}">
+              <GeometryDrawing.Geometry>
+                <RectangleGeometry Rect="0,0,8,8" />
+              </GeometryDrawing.Geometry>
+            </GeometryDrawing>
+            <GeometryDrawing Brush="{StaticResource CheckerB}">
+              <GeometryDrawing.Geometry>
+                <RectangleGeometry Rect="8,8,8,8" />
+              </GeometryDrawing.Geometry>
+            </GeometryDrawing>
+          </DrawingGroup>
+        </DrawingBrush.Drawing>
+      </DrawingBrush>
+    </ResourceDictionary>
+
+    <!-- 深色主题：靠亮度阶梯分层（#14161A → #1C1F26 → #242830），阴影全部换成描边 -->
+    <ResourceDictionary x:Key="Dark">
+      <SolidColorBrush x:Key="BgCanvas" Color="#14161A" />
+      <SolidColorBrush x:Key="SurfacePanel" Color="#1C1F26" />
+      <SolidColorBrush x:Key="SurfaceRaised" Color="#242830" />
+      <SolidColorBrush x:Key="BorderDefault" Color="#2E333D" />
+      <SolidColorBrush x:Key="BorderStrong" Color="#3C434F" />
+      <SolidColorBrush x:Key="AccentPrimary" Color="#5B8CFF" />
+      <SolidColorBrush x:Key="AccentHover" Color="#7AA1FF" />
+      <SolidColorBrush x:Key="AccentSubtle" Color="#1E2A44" />
+      <SolidColorBrush x:Key="TextPrimary" Color="#E8EAEE" />
+      <SolidColorBrush x:Key="TextSecondary" Color="#9AA3B2" />
+      <SolidColorBrush x:Key="TextDisabled" Color="#5A626F" />
+      <SolidColorBrush x:Key="StateHoverBg" Color="#262B34" />
+      <SolidColorBrush x:Key="StateSelectedBg" Color="#1E2A44" />
+      <SolidColorBrush x:Key="StateDanger" Color="#FF6369" />
+      <SolidColorBrush x:Key="StateWarning" Color="#FFB84D" />
+      <SolidColorBrush x:Key="StateSuccess" Color="#3DD68C" />
+      <!-- 帧变更角标「新」的文字色：浅色下 StateSuccess 偏深 → 白字；深色下偏亮 → 深字 -->
+      <SolidColorBrush x:Key="FrameChangeBadgeText" Color="#14161A" />
+      <SolidColorBrush x:Key="ToolbarBg" Color="#1C1F26" />
+      <SolidColorBrush x:Key="StatusBarBg" Color="#1C1F26" />
+      <SolidColorBrush x:Key="CheckerA" Color="#2A2E36" />
+      <SolidColorBrush x:Key="CheckerB" Color="#23262D" />
+      <SolidColorBrush x:Key="FrameOuterArea" Color="#0F1114" />
+      <SolidColorBrush x:Key="FrameBorderBrush" Color="#A67AA1FF" />
+
+      <!-- 深色主题气泡再压暗一档，避免在大面积亮图前发灰 -->
+      <SolidColorBrush x:Key="ZoomBubbleBg" Color="#E60A0C10" />
+      <SolidColorBrush x:Key="ZoomBubbleText" Color="#F2F4F7" />
+
+      <!-- 画布标尺 / 参考线：深色下标尺比 BgCanvas 亮一档，避免糊成一片 -->
+      <SolidColorBrush x:Key="RulerBg" Color="#23262D" />
+      <SolidColorBrush x:Key="RulerTick" Color="#6E7787" />
+      <SolidColorBrush x:Key="CanvasCrosshair" Color="#8FB2FF" />
+
+      <!-- 参考线：深色下用更亮的琥珀色，纯 1px 压在亮图上也有足够对比 -->
+      <SolidColorBrush x:Key="GuideLine" Color="#FFC24D" />
+
+      <!-- 参考线坐标标签：同样取琥珀色本色（整组 0.75 不透明度），文字用近黑色，浅色图像前也有足够对比 -->
+      <SolidColorBrush x:Key="GuideLabelBg" Color="#FFC24D" />
+      <SolidColorBrush x:Key="GuideLabelText" Color="#14161A" />
+
+      <DrawingBrush x:Key="TransparencyChecker" TileMode="Tile"
+                    DestinationRect="0,0,16,16" SourceRect="0,0,16,16" Stretch="None">
+        <DrawingBrush.Drawing>
+          <DrawingGroup>
+            <GeometryDrawing Brush="{StaticResource CheckerA}">
+              <GeometryDrawing.Geometry>
+                <RectangleGeometry Rect="0,0,16,16" />
+              </GeometryDrawing.Geometry>
+            </GeometryDrawing>
+            <GeometryDrawing Brush="{StaticResource CheckerB}">
+              <GeometryDrawing.Geometry>
+                <RectangleGeometry Rect="0,0,8,8" />
+              </GeometryDrawing.Geometry>
+            </GeometryDrawing>
+            <GeometryDrawing Brush="{StaticResource CheckerB}">
+              <GeometryDrawing.Geometry>
+                <RectangleGeometry Rect="8,8,8,8" />
+              </GeometryDrawing.Geometry>
+            </GeometryDrawing>
+          </DrawingGroup>
+        </DrawingBrush.Drawing>
+      </DrawingBrush>
+    </ResourceDictionary>
+  </ResourceDictionary.ThemeDictionaries>
+
+  <!-- 与主题无关的量值 -->
+  <CornerRadius x:Key="RadiusCard">6</CornerRadius>
+  <CornerRadius x:Key="RadiusControl">4</CornerRadius>
+  <Thickness x:Key="PanelPadding">12</Thickness>
+
+  <!-- 亮 / 暗两档棋盘格。颜色写死、不随主题变，方便对照"亮底/暗底"两种观察条件。 -->
+  <DrawingBrush x:Key="TransparencyCheckerLight" TileMode="Tile"
+                DestinationRect="0,0,16,16" SourceRect="0,0,16,16" Stretch="None">
+    <DrawingBrush.Drawing>
+      <DrawingGroup>
+        <GeometryDrawing Brush="#FFFFFF">
+          <GeometryDrawing.Geometry>
+            <RectangleGeometry Rect="0,0,16,16" />
+          </GeometryDrawing.Geometry>
+        </GeometryDrawing>
+        <GeometryDrawing Brush="#CBD2DC">
+          <GeometryDrawing.Geometry>
+            <RectangleGeometry Rect="0,0,8,8" />
+          </GeometryDrawing.Geometry>
+        </GeometryDrawing>
+        <GeometryDrawing Brush="#CBD2DC">
+          <GeometryDrawing.Geometry>
+            <RectangleGeometry Rect="8,8,8,8" />
+          </GeometryDrawing.Geometry>
+        </GeometryDrawing>
+      </DrawingGroup>
+    </DrawingBrush.Drawing>
+  </DrawingBrush>
+
+  <DrawingBrush x:Key="TransparencyCheckerDark" TileMode="Tile"
+                DestinationRect="0,0,16,16" SourceRect="0,0,16,16" Stretch="None">
+    <DrawingBrush.Drawing>
+      <DrawingGroup>
+        <GeometryDrawing Brush="#808080">
+          <GeometryDrawing.Geometry>
+            <RectangleGeometry Rect="0,0,16,16" />
+          </GeometryDrawing.Geometry>
+        </GeometryDrawing>
+        <GeometryDrawing Brush="#6B6B6B">
+          <GeometryDrawing.Geometry>
+            <RectangleGeometry Rect="0,0,8,8" />
+          </GeometryDrawing.Geometry>
+        </GeometryDrawing>
+        <GeometryDrawing Brush="#6B6B6B">
+          <GeometryDrawing.Geometry>
+            <RectangleGeometry Rect="8,8,8,8" />
+          </GeometryDrawing.Geometry>
+        </GeometryDrawing>
+      </DrawingGroup>
+    </DrawingBrush.Drawing>
+  </DrawingBrush>
+</ResourceDictionary>

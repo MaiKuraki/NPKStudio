@@ -1,0 +1,73 @@
+# ── 构建产物 ──────────────────────────────────────────────
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+[Pp]ublish/
+[Dd]ist/
+*.exe
+*.dll
+*.pdb
+*.deps.json
+*.runtimeconfig.json
+
+# ── 测试样本 ──────────────────────────────────────────────
+# 真实客户端 NPK 是第三方版权资产，不随仓库分发；tests/samples/ 只接收自备样本（见该目录 README）。
+tests/samples/*.NPK
+tests/samples/*.npk
+# 例外：合成样本由 tools/make-sample 程序化生成（纯几何图形），随 MIT 一起提交
+!tests/samples/synthetic_shapes.NPK
+
+# ── Visual Studio / Rider / VS Code ───────────────────────
+.vs/
+.vscode/
+.idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.DotSettings.user
+_ReSharper*/
+*.[Cc]ache
+*.VC.db
+*.VC.VC.opendb
+
+# ── 测试与覆盖率 ──────────────────────────────────────────
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+*.trx
+*.coverage
+*.coveragexml
+coverage*.json
+coverage*.xml
+coverage*.info
+
+# ── 本项目特有 ────────────────────────────────────────────
+# 开发过程截图等临时素材（发布用的图在 docs/images/，那个要提交）
+artifacts/
+# 程序运行时写出的崩溃日志
+log/
+
+# ── 系统文件 ──────────────────────────────────────────────
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
+
+# ── 本地配置 / 临时文件 ───────────────────────────────────
+*.tmp
+*.bak
+*.orig
+*.log
+
+# ── 补充 ──────────────────────────────────────────────────
+*.nupkg
+*.snupkg
+*.swp
+*.swo
+TestResults/
+.idea/
+
+__pycache__/
+*.pyc

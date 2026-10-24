@@ -1,0 +1,32 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:loc="using:NPKStudio.Desktop.Localization"
+        x:Class="NPKStudio.Desktop.Views.Dialogs.SaveChangesDialog"
+        Width="420"
+        SizeToContent="Height"
+        CanResize="False"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner"
+        Title="{loc:Tr dialog.close.title}"
+        Background="{DynamicResource SurfacePanel}"
+        FontFamily="Inter, Microsoft YaHei UI, PingFang SC"
+        FontSize="13">
+
+  <!-- 三选一：保存 / 不保存 / 取消。刻意不引入第三方对话框库：
+       Avalonia 自带的 Window 就够用，而且样式能跟主窗口共用同一套 token。 -->
+  <StackPanel Margin="20" Spacing="18">
+    <TextBlock x:Name="MessageText"
+               TextWrapping="Wrap"
+               MaxWidth="380"
+               Foreground="{DynamicResource TextPrimary}" />
+
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+      <Button Classes="toolWide" MinWidth="84"
+              Content="{loc:Tr dialog.close.cancel}" Click="OnCancel" />
+      <Button Classes="toolWide" MinWidth="84"
+              Content="{loc:Tr dialog.close.discard}" Click="OnDiscard" />
+      <Button Classes="primary" MinWidth="84" Height="32"
+              Content="{loc:Tr dialog.close.save}" Click="OnSave" />
+    </StackPanel>
+  </StackPanel>
+</Window>

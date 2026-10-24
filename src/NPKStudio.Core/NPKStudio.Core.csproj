@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>NPKStudio.Core</RootNamespace>
+    <AssemblyName>NPKStudio.Core</AssemblyName>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <IsPackable>false</IsPackable>
+    <!-- 零第三方依赖：zlib 用 BCL System.IO.Compression，JSON 用 System.Text.Json -->
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- 仅测试工程可见：用于构造脏状态（如把 NpkEntry.IsModified 置真）验证保存/重编码路径 -->
+    <InternalsVisibleTo Include="NPKStudio.Core.Tests" />
+  </ItemGroup>
+
+</Project>

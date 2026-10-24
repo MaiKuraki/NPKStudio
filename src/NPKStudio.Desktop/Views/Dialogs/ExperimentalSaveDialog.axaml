@@ -1,0 +1,30 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:loc="using:NPKStudio.Desktop.Localization"
+        x:Class="NPKStudio.Desktop.Views.Dialogs.ExperimentalSaveDialog"
+        Width="460"
+        SizeToContent="Height"
+        CanResize="False"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner"
+        Title="{loc:Tr dialog.experimental.title}"
+        Background="{DynamicResource SurfacePanel}"
+        FontFamily="Inter, Microsoft YaHei UI, PingFang SC"
+        FontSize="13">
+
+  <!-- 实验性版本（v4/v5/v6）写回确认：文案如实说明"推导实现、无真实样本"与降质风险。
+       刻意与 SaveChangesDialog 同一套 Window + Button.primary 样式，不引第三方对话框库。 -->
+  <StackPanel Margin="20" Spacing="18">
+    <TextBlock x:Name="MessageText"
+               TextWrapping="Wrap"
+               MaxWidth="420"
+               Foreground="{DynamicResource TextPrimary}" />
+
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+      <Button Classes="toolWide" MinWidth="84"
+              Content="{loc:Tr dialog.experimental.cancel}" Click="OnCancel" />
+      <Button Classes="primary" MinWidth="84" Height="32"
+              Content="{loc:Tr dialog.experimental.continue}" Click="OnContinue" />
+    </StackPanel>
+  </StackPanel>
+</Window>

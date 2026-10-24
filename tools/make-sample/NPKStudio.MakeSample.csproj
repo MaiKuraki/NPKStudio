@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>NPKStudio.MakeSample</AssemblyName>
+    <RootNamespace>NPKStudio.MakeSample</RootNamespace>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\NPKStudio.Core\NPKStudio.Core.csproj" />
+  </ItemGroup>
+
+</Project>

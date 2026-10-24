@@ -1,0 +1,751 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="using:NPKStudio.Desktop.Controls"
+        xmlns:conv="using:Avalonia.Data.Converters"
+        xmlns:loc="using:NPKStudio.Desktop.Localization"
+        xmlns:vm="using:NPKStudio.Desktop.ViewModels"
+        x:Class="NPKStudio.Desktop.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Title="{Binding WindowTitle}"
+        Width="1440" Height="900"
+        MinWidth="1024" MinHeight="680"
+        Background="{DynamicResource BgCanvas}"
+        FontFamily="Inter, Microsoft YaHei UI, PingFang SC"
+        FontSize="13">
+
+  <Grid RowDefinitions="44,*,26">
+
+    <!-- ==================== 工具栏 ==================== -->
+    <Border Grid.Row="0"
+            Background="{DynamicResource ToolbarBg}"
+            BorderBrush="{DynamicResource BorderDefault}"
+            BorderThickness="0,0,0,1">
+      <Grid ColumnDefinitions="*,Auto" Margin="12,0">
+        <StackPanel Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
+          <!-- 文档标题：文件名 + 未保存圆点。两个 TextBlock 叠加，圆点颜色走 StateWarning token，绝不拼进字符串 -->
+          <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center" Margin="0,0,6,0">
+            <TextBlock Text="{Binding FileName}" FontSize="13" FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextPrimary}"
+                       VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="220" />
+            <TextBlock Text="●" FontSize="10"
+                       Foreground="{DynamicResource StateWarning}"
+                       VerticalAlignment="Center"
+                       ToolTip.Tip="{loc:Tr status.dirtyTip}"
+                       IsVisible="{Binding IsDirty}" />
+          </StackPanel>
+          <Rectangle Classes="toolSep" />
+          <Button Classes="tool" ToolTip.Tip="{loc:Tr tip.open}" Click="OnOpenFile">
+            <Path Data="{StaticResource IconOpen}" Width="20" Height="20" Stretch="Uniform" />
+          </Button>
+          <Button Classes="tool" ToolTip.Tip="{loc:Tr tip.openFolder}" Click="OnOpenFolder">
+            <Path Data="{StaticResource IconPackage}" Width="20" Height="20" Stretch="Uniform" />
+          </Button>
+          <Button Classes="tool" ToolTip.Tip="{Binding SaveTooltip}" IsEnabled="{Binding CanSave}" Click="OnSaveAs">
+            <Path Data="{StaticResource IconSave}" Width="20" Height="20" Stretch="Uniform" />
+          </Button>
+          <Button Classes="tool" ToolTip.Tip="{loc:Tr tip.exportNpk}"
+                  IsVisible="{Binding IsFolderMode}" Click="OnExportNpk">
+            <Path Data="{StaticResource IconPackage}" Width="20" Height="20" Stretch="Uniform" />
+          </Button>
+
+          <!-- 资源清单：只挂 Flyout、不挂 Click（Avalonia 下 Click 与 Flyout 语义有歧义） -->
+          <Button Classes="tool" ToolTip.Tip="{loc:Tr tip.manifest}">
+            <Path Data="{StaticResource IconManifest}" Width="20" Height="20" Stretch="Uniform" />
+            <Button.Flyout>
+              <MenuFlyout>
+                <MenuItem Header="{loc:Tr menu.manifest.choose}" Click="OnChooseManifest" />
+                <MenuItem Header="{loc:Tr menu.manifest.export}"
+                          IsEnabled="{Binding IsFolderMode}" Click="OnExportNpkWithManifest" />
+                <MenuItem Header="{loc:Tr menu.manifest.generate}" Click="OnGenerateManifest" />
+                <MenuItem Header="{loc:Tr menu.manifest.clear}" Click="OnClearManifest" />
+              </MenuFlyout>
+            </Button.Flyout>
+          </Button>
+
+          <Rectangle Classes="toolSep" />
+
+          <Button Classes="tool" ToolTip.Tip="{loc:Tr tip.undo}" IsEnabled="{Binding CanUndo}" Click="OnUndo">
+            <Path Data="{StaticResource IconUndo}" Width="20" Height="20" Stretch="Uniform" />
+          </Button>
+          <Button Classes="tool" ToolTip.Tip="{loc:Tr tip.redo}" IsEnabled="{Binding CanRedo}" Click="OnRedo">
+            <Path Data="{StaticResource IconRedo}" Width="20" Height="20" Stretch="Uniform" />
+          </Button>
+
+          <Rectangle Classes="toolSep" />
+
+          <Button Classes="tool" x:Name="ReplaceFrameButton" ToolTip.Tip="{loc:Tr tip.replace}"
+                  IsEnabled="{Binding CanEditFrames}" Click="OnReplaceFrame">
+            <Path Data="{StaticResource IconReplace}" Width="20" Height="20" Stretch="Uniform" />
+          </Button>
+          <Button Classes="tool" x:Name="TrimFrameButton" ToolTip.Tip="{loc:Tr tip.crop}"
+                  IsEnabled="{Binding CanTrim}" Click="OnTrimFrames">
+            <Path Data="{StaticResource IconCrop}" Width="20" Height="20" Stretch="Uniform" />
+          </Button>
+
+          <Rectangle Classes="toolSep" />
+
+          <Button Classes="tool" ToolTip.Tip="{loc:Tr tip.png}" IsEnabled="{Binding HasFrames}" Click="OnExportPng">
+            <Path Data="{StaticResource IconPng}" Width="20" Height="20" Stretch="Uniform" />
+          </Button>
+          <Button Classes="tool" x:Name="ExportGifButton" ToolTip.Tip="{loc:Tr tip.gif}"
+                  IsEnabled="{Binding CanEditFrames}" Click="OnExportGif">
+            <Path Data="{StaticResource IconGif}" Width="20" Height="20" Stretch="Uniform" />
+          </Button>
+        </StackPanel>
+
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
+          <Button Classes="tool" ToolTip.Tip="{loc:Tr tip.theme}" Click="OnToggleTheme">
+            <Path Data="{StaticResource IconTheme}" Width="20" Height="20" Stretch="Uniform" />
+          </Button>
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <!-- ==================== 主体三栏 ==================== -->
+    <Grid Grid.Row="1" x:Name="ContentGrid" ColumnDefinitions="280,6,*,6,320">
+
+      <!-- 左：文件列表（可折叠为 40px 竖条）。
+           外层 Grid 铺满列宽，内层 Border 由 code-behind 显式设宽度：
+           ColumnDefinition 不在可视树里、也不支持 Transitions，所以 180ms 宽度过渡挂在 Border 的 Width 上；
+           折叠瞬间列宽已经是 40，面板自身再"滑"过去，视觉上就是收起动画。 -->
+      <Grid Grid.Column="0" x:Name="LeftPanelHost" Panel.ZIndex="1">
+        <Border x:Name="LeftPanel"
+                Background="{DynamicResource SurfacePanel}"
+                BorderBrush="{DynamicResource BorderDefault}"
+                BorderThickness="0,0,1,0"
+                ClipToBounds="True">
+          <Grid>
+            <!-- 展开态 -->
+            <Grid x:Name="LeftExpandedArea" RowDefinitions="44,*" IsVisible="{Binding !IsLeftCollapsed}">
+              <Grid Grid.Row="0" Margin="12,0" ColumnDefinitions="*,6,Auto">
+                <TextBox Classes="search" x:Name="SearchBox" Watermark="{loc:Tr search.watermark}" VerticalAlignment="Center"
+                         Text="{Binding EntryFilter}" />
+                <Button Grid.Column="2" Classes="toolSm" x:Name="CollapseLeftButton"
+                        ToolTip.Tip="{loc:Tr panel.collapseLeft}" Click="OnToggleLeftPanel">
+                  <Path Data="{StaticResource IconChevronsLeft}" Width="16" Height="16" Stretch="Uniform" />
+                </Button>
+              </Grid>
+
+              <ListBox Grid.Row="1"
+                       x:Name="FileList"
+                       ItemsSource="{Binding FilteredEntries}"
+                       SelectedItem="{Binding SelectedEntry}"
+                       Background="Transparent"
+                       BorderThickness="0"
+                       Padding="6,0"
+                       IsVisible="{Binding HasEntries}">
+                <ListBox.ItemTemplate>
+                  <DataTemplate DataType="vm:EntryItem">
+                    <Grid ColumnDefinitions="16,8,*,Auto" Height="30">
+                      <Path Data="{StaticResource IconImage}" Width="16" Height="16" Stretch="Uniform"
+                            Stroke="{DynamicResource TextSecondary}" StrokeThickness="1.2"
+                            VerticalAlignment="Center" />
+                      <TextBlock Grid.Column="2" Text="{Binding Name}" FontSize="13"
+                                 Foreground="{DynamicResource TextPrimary}"
+                                 VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                      <TextBlock Grid.Column="3" Text="{Binding FrameCount}" FontSize="11"
+                                 Foreground="{DynamicResource TextSecondary}"
+                                 VerticalAlignment="Center" Margin="8,0,0,0" />
+                    </Grid>
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
+
+              <StackPanel Grid.Row="1" IsVisible="{Binding !HasEntries}"
+                          VerticalAlignment="Center" Spacing="10" Margin="24">
+                <Path Data="{StaticResource IconPackage}" Width="40" Height="40" Stretch="Uniform"
+                      Stroke="{DynamicResource TextDisabled}" StrokeThickness="1.2"
+                      HorizontalAlignment="Center" />
+                <TextBlock Text="{loc:Tr empty.noArchive}"
+                           FontSize="13" Foreground="{DynamicResource TextSecondary}"
+                           HorizontalAlignment="Center" TextAlignment="Center" />
+                <TextBlock Text="{loc:Tr empty.dropHint}"
+                           FontSize="12" Foreground="{DynamicResource TextDisabled}"
+                           HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" />
+                <Button Classes="primary" Content="{loc:Tr empty.chooseFile}" HorizontalAlignment="Center"
+                        Margin="0,4,0,0" Click="OnOpenFile" />
+              </StackPanel>
+            </Grid>
+
+            <!-- 折叠态：40px 竖条（展开按钮 + 条目计数） -->
+            <Border x:Name="LeftRail" IsVisible="{Binding IsLeftCollapsed}">
+              <StackPanel Margin="0,8,0,0" Spacing="10" HorizontalAlignment="Center">
+                <Button Classes="toolSm" x:Name="ExpandLeftButton"
+                        ToolTip.Tip="{loc:Tr panel.expandLeft}" Click="OnToggleLeftPanel">
+                  <Path Data="{StaticResource IconChevronsRight}" Width="16" Height="16" Stretch="Uniform" />
+                </Button>
+                <Border Background="{DynamicResource AccentSubtle}" CornerRadius="4" Padding="5,2"
+                        HorizontalAlignment="Center" ToolTip.Tip="{Binding EntryCountText}">
+                  <TextBlock Text="{Binding LeftPanelCountText}" FontSize="11"
+                             Foreground="{DynamicResource AccentPrimary}" />
+                </Border>
+              </StackPanel>
+            </Border>
+          </Grid>
+        </Border>
+      </Grid>
+
+      <GridSplitter Grid.Column="1" x:Name="LeftSplitter" ResizeDirection="Columns"
+                    Background="Transparent" MinWidth="0" />
+
+      <!-- 中：画布 + 播放控制条 -->
+      <Grid Grid.Column="2" RowDefinitions="*,44">
+
+        <Border Grid.Row="0" Background="{DynamicResource BgCanvas}" ClipToBounds="True">
+        <Grid>
+          <controls:ImageCanvas x:Name="FrameCanvas"
+                                Image="{Binding CurrentImage}"
+                                CanvasSize="{Binding CanvasSize}"
+                                CanvasOrigin="{Binding CanvasOrigin}"
+                                OriginMode="{Binding OriginMode, Mode=TwoWay}"
+                                FrameOffset="{Binding FrameOffset}"
+                                Background="{Binding Backdrop}"
+                                IsRulersVisible="{Binding IsRulersVisible, Mode=TwoWay}"
+                                IsGuidesVisible="{Binding IsGuidesVisible, Mode=TwoWay}"
+                                CheckerBrush="{DynamicResource TransparencyChecker}"
+                                CheckerLightBrush="{DynamicResource TransparencyCheckerLight}"
+                                CheckerDarkBrush="{DynamicResource TransparencyCheckerDark}"
+                                OuterBrush="{DynamicResource FrameOuterArea}"
+                                FrameBorder="{DynamicResource FrameBorderBrush}"
+                                RulerBackground="{DynamicResource RulerBg}"
+                                RulerBorderBrush="{DynamicResource BorderDefault}"
+                                RulerTickBrush="{DynamicResource RulerTick}"
+                                RulerTextBrush="{DynamicResource TextSecondary}"
+                                CrosshairBrush="{DynamicResource CanvasCrosshair}"
+                                GuideBrush="{DynamicResource GuideLine}"
+                                GuideLabelBackground="{DynamicResource GuideLabelBg}"
+                                GuideLabelTextBrush="{DynamicResource GuideLabelText}"
+                                ShowGuideLabels="{Binding IsGuideLabelsVisible, Mode=TwoWay}"
+                                IsPixelAlignEnabled="{Binding IsPixelAlignEnabled, Mode=TwoWay}">
+            <controls:ImageCanvas.ContextMenu>
+              <!-- 分组：背景 → 视图 → 标尺/参考线（显示开关、创建、清除） -->
+              <ContextMenu>
+                <MenuItem Header="{loc:Tr canvas.bg.checker}" Click="OnBackgroundChecker" />
+                <MenuItem Header="{loc:Tr canvas.bg.checkerLight}" Click="OnBackgroundCheckerLight" />
+                <MenuItem Header="{loc:Tr canvas.bg.checkerDark}" Click="OnBackgroundCheckerDark" />
+                <MenuItem Header="{loc:Tr canvas.bg.black}" Click="OnBackgroundBlack" />
+                <MenuItem Header="{loc:Tr canvas.bg.dark}" Click="OnBackgroundDark" />
+                <MenuItem Header="{loc:Tr canvas.bg.light}" Click="OnBackgroundLight" />
+                <MenuItem Header="{loc:Tr canvas.bg.green}" Click="OnBackgroundGreen" />
+                <Separator />
+                <MenuItem Header="{loc:Tr canvas.fit}" Click="OnFitToView" />
+                <MenuItem Header="{loc:Tr canvas.zoom100}" Click="OnZoom100" />
+                <Separator />
+                <MenuItem Header="{loc:Tr canvas.rulers}" ToggleType="CheckBox"
+                          IsChecked="{Binding IsRulersVisible, Mode=TwoWay}" />
+                <MenuItem Header="{loc:Tr canvas.guides}" ToggleType="CheckBox"
+                          IsChecked="{Binding IsGuidesVisible, Mode=TwoWay}" />
+                <MenuItem Header="{loc:Tr canvas.guides.labels}" ToggleType="CheckBox"
+                          IsChecked="{Binding IsGuideLabelsVisible, Mode=TwoWay}" />
+                <MenuItem x:Name="PixelAlignMenuItem" Header="{loc:Tr canvas.pixelAlign}"
+                          ToggleType="CheckBox"
+                          ToolTip.Tip="{loc:Tr canvas.pixelAlign.tip}"
+                          IsChecked="{Binding IsPixelAlignEnabled, Mode=TwoWay}" />
+                <MenuItem x:Name="AddHorizontalGuideMenuItem" Header="{loc:Tr canvas.guides.addH}"
+                          Click="OnAddHorizontalGuide" />
+                <MenuItem x:Name="AddVerticalGuideMenuItem" Header="{loc:Tr canvas.guides.addV}"
+                          Click="OnAddVerticalGuide" />
+                <MenuItem x:Name="ClearGuidesMenuItem" Header="{loc:Tr canvas.guides.clear}"
+                          IsEnabled="{Binding HasGuides}" Click="OnClearGuides" />
+                <Separator />
+                <!-- 坐标基准：只换读数，不移动线；检查器里的 X/Y 永远保持角色坐标 -->
+                <MenuItem Header="{loc:Tr canvas.origin}">
+                  <MenuItem x:Name="ImageOriginMenuItem" Header="{loc:Tr canvas.origin.image}"
+                            ToggleType="CheckBox"
+                            ToolTip.Tip="{loc:Tr canvas.origin.image.tip}"
+                            IsChecked="{Binding IsImageOrigin, Mode=TwoWay}"
+                            Click="OnImageOriginPicked" />
+                  <MenuItem x:Name="RoleOriginMenuItem" Header="{loc:Tr canvas.origin.role}"
+                            ToggleType="CheckBox"
+                            ToolTip.Tip="{loc:Tr canvas.origin.role.tip}"
+                            IsChecked="{Binding IsRoleOrigin, Mode=TwoWay}"
+                            Click="OnRoleOriginPicked" />
+                </MenuItem>
+              </ContextMenu>
+            </controls:ImageCanvas.ContextMenu>
+          </controls:ImageCanvas>
+
+          <!-- 标尺左上角交叉方块：只负责挂一个"当前基准"提示，不参与任何绘制。
+               Width/Height 与 ImageCanvas.RulerSize（20）保持一致，只覆盖标尺交叉处。 -->
+          <Border x:Name="RulerOriginCorner"
+                  Width="20" Height="20" Background="Transparent"
+                  HorizontalAlignment="Left" VerticalAlignment="Top"
+                  IsVisible="{Binding IsRulersVisible}"
+                  ToolTip.Tip="{Binding OriginModeTip}"
+                  ToolTip.Placement="Right" />
+
+          <!-- 空状态：没有帧时显示 -->
+          <StackPanel x:Name="CanvasEmpty" IsVisible="{Binding !HasFrames}"
+                      VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="12">
+            <Path Data="{StaticResource IconImage}" Width="56" Height="56" Stretch="Uniform"
+                  Stroke="{DynamicResource TextDisabled}" StrokeThickness="1"
+                  HorizontalAlignment="Center" />
+            <TextBlock Classes="emptyTitle" Text="{loc:Tr canvas.title}" />
+            <TextBlock Classes="emptyDesc" Text="{loc:Tr canvas.desc}" />
+          </StackPanel>
+
+          <!-- 缩放气泡（右下角） -->
+          <Border HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                  Margin="0,0,16,16"
+                  Background="{DynamicResource ZoomBubbleBg}" CornerRadius="6" Padding="10,4">
+            <TextBlock x:Name="ZoomLabel" Text="100%" FontSize="12" Foreground="{DynamicResource ZoomBubbleText}" />
+          </Border>
+        </Grid>
+        </Border>
+
+        <!-- 播放控制条（画布下方独立一行，不覆盖画布） -->
+        <Border Grid.Row="1"
+                Background="{DynamicResource ToolbarBg}"
+                BorderBrush="{DynamicResource BorderDefault}"
+                BorderThickness="0,1,0,0">
+          <!-- 内容宽度超过画布列时允许横向滚动，避免右侧按钮被窗口裁掉 -->
+          <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+          <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto,Auto" Margin="12,0">
+
+            <StackPanel Orientation="Horizontal" Spacing="2" VerticalAlignment="Center"
+                        IsEnabled="{Binding HasFrames}">
+              <Button Classes="tool" ToolTip.Tip="{loc:Tr playback.first}" Click="OnFirstFrame">
+                <Path Data="{StaticResource IconFirst}" Fill="{DynamicResource TextPrimary}"
+                      Width="16" Height="16" Stretch="Uniform" />
+              </Button>
+              <Button Classes="tool" ToolTip.Tip="{loc:Tr playback.prev}" Click="OnPrevFrame">
+                <Path Data="{StaticResource IconPrev}" Fill="{DynamicResource TextPrimary}"
+                      Width="16" Height="16" Stretch="Uniform" />
+              </Button>
+
+              <!-- 播放 / 暂停：同一位置两态切换 -->
+              <Button Classes="tool" ToolTip.Tip="{loc:Tr playback.play}" Click="OnTogglePlay"
+                      IsVisible="{Binding !IsPlaying}">
+                <Path Data="{StaticResource IconPlay}" Fill="{DynamicResource TextPrimary}"
+                      Width="16" Height="16" Stretch="Uniform" />
+              </Button>
+              <Button Classes="tool" ToolTip.Tip="{loc:Tr playback.pause}" Click="OnTogglePlay"
+                      IsVisible="{Binding IsPlaying}">
+                <Path Data="{StaticResource IconPause}" Fill="{DynamicResource AccentPrimary}"
+                      Width="16" Height="16" Stretch="Uniform" />
+              </Button>
+
+              <Button Classes="tool" ToolTip.Tip="{loc:Tr playback.next}" Click="OnNextFrame">
+                <Path Data="{StaticResource IconNext}" Fill="{DynamicResource TextPrimary}"
+                      Width="16" Height="16" Stretch="Uniform" />
+              </Button>
+              <Button Classes="tool" ToolTip.Tip="{loc:Tr playback.last}" Click="OnLastFrame">
+                <Path Data="{StaticResource IconLast}" Fill="{DynamicResource TextPrimary}"
+                      Width="16" Height="16" Stretch="Uniform" />
+              </Button>
+            </StackPanel>
+
+            <TextBlock Grid.Column="1" Classes="caption" Text="{Binding FrameCounter}"
+                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+
+            <TextBlock Grid.Column="2" Classes="caption" Text="{loc:Tr playback.fps}"
+                       VerticalAlignment="Center" Margin="0,0,6,0" />
+            <ComboBox Grid.Column="3" Width="104" VerticalAlignment="Center"
+                      ItemsSource="{Binding RateOptions}"
+                      SelectedItem="{Binding SelectedRateText}"
+                      ToolTip.Tip="{loc:Tr playback.rateTip}" />
+            <ToggleButton Grid.Column="4" Margin="12,0,0,0" VerticalAlignment="Center"
+                          Content="{loc:Tr playback.loop}"
+                          IsChecked="{Binding LoopPlayback}" />
+
+            <!-- 背景下拉：显式入口，显示当前档位短名；菜单项复用右键菜单的同一批处理器 -->
+            <Button Grid.Column="5" Classes="toolWide" Margin="8,0,0,0" VerticalAlignment="Center"
+                    ToolTip.Tip="{Binding BackdropTooltip}">
+              <StackPanel Orientation="Horizontal" Spacing="4">
+                <TextBlock Text="{Binding BackdropShortName}" FontSize="12" VerticalAlignment="Center" />
+                <Path Data="{StaticResource IconChevronDown}" Width="12" Height="12" Stretch="Uniform"
+                      Stroke="{DynamicResource TextSecondary}" StrokeThickness="1.4"
+                      VerticalAlignment="Center" />
+              </StackPanel>
+              <Button.Flyout>
+                <MenuFlyout>
+                    <MenuItem Header="{loc:Tr canvas.bg.checker}" Click="OnBackgroundChecker" />
+                  <MenuItem Header="{loc:Tr canvas.bg.checkerLight}" Click="OnBackgroundCheckerLight" />
+                  <MenuItem Header="{loc:Tr canvas.bg.checkerDark}" Click="OnBackgroundCheckerDark" />
+                  <MenuItem Header="{loc:Tr canvas.bg.black}" Click="OnBackgroundBlack" />
+                  <MenuItem Header="{loc:Tr canvas.bg.dark}" Click="OnBackgroundDark" />
+                  <MenuItem Header="{loc:Tr canvas.bg.light}" Click="OnBackgroundLight" />
+                  <MenuItem Header="{loc:Tr canvas.bg.green}" Click="OnBackgroundGreen" />
+                </MenuFlyout>
+              </Button.Flyout>
+            </Button>
+
+            <!-- 效果：原图 / 真叠加 / 线性减淡（对应 ani 的 [GRAPHIC EFFECT]） -->
+            <ComboBox Grid.Column="6" Width="118" VerticalAlignment="Center" Margin="12,0,0,0"
+                      ItemsSource="{Binding EffectNames}"
+                      SelectedItem="{Binding SelectedEffectName}"
+                      ToolTip.Tip="{loc:Tr effect.tip}" />
+          </Grid>
+          </ScrollViewer>
+        </Border>
+      </Grid>
+
+      <GridSplitter Grid.Column="3" x:Name="RightSplitter" ResizeDirection="Columns"
+                    Background="Transparent" MinWidth="0" />
+
+      <!-- 右：帧列表 + 帧检查器（可折叠为 40px 竖条） -->
+      <Grid Grid.Column="4" x:Name="RightPanelHost" Panel.ZIndex="1">
+        <Border x:Name="RightPanel" HorizontalAlignment="Right"
+                Background="{DynamicResource SurfacePanel}"
+                BorderBrush="{DynamicResource BorderDefault}"
+                BorderThickness="1,0,0,0"
+                ClipToBounds="True">
+          <Grid>
+            <Grid x:Name="RightExpandedArea" RowDefinitions="40,*,Auto" IsVisible="{Binding !IsRightCollapsed}">
+              <Grid Grid.Row="0" Margin="12,0" ColumnDefinitions="Auto,*,Auto,6,Auto">
+                <TextBlock Classes="panelTitle" Text="{loc:Tr panel.frames}" />
+                <TextBlock Grid.Column="2" Classes="caption" Text="{Binding FrameCounter}" />
+                <Button Grid.Column="4" Classes="toolSm" x:Name="CollapseRightButton"
+                        ToolTip.Tip="{loc:Tr panel.collapseRight}" Click="OnToggleRightPanel">
+                  <Path Data="{StaticResource IconChevronsRight}" Width="16" Height="16" Stretch="Uniform" />
+                </Button>
+              </Grid>
+
+              <!-- 多选：SelectedItems 与 SelectedFrame 同时绑定。Multiple 模式下 SelectedItem 仍是"最后点击项"，
+                   所以播放/画布的选中逻辑不受影响；SelectedItems 才是删除/移动的作用范围 -->
+              <Grid Grid.Row="1" IsVisible="{Binding HasFrames}">
+              <ListBox
+                       x:Name="FrameList"
+                       ItemsSource="{Binding Frames}"
+                       SelectedItem="{Binding SelectedFrame}"
+                       SelectedItems="{Binding SelectedFrames, Mode=TwoWay}"
+                       SelectionMode="Multiple"
+                       Background="Transparent"
+                       BorderThickness="0"
+                       Padding="8,4,4,4">
+                <ListBox.ContextMenu>
+                  <!-- 隐藏是纯视图状态（不删帧、不改文件）：DataContext 在 code-behind 里显式补给菜单 -->
+                  <ContextMenu>
+                    <MenuItem Header="{loc:Tr menu.frame.hide}" Click="OnHideSelectedFrames" />
+                    <MenuItem Header="{loc:Tr menu.frame.show}" Click="OnShowSelectedFrames" />
+                    <Separator />
+                    <MenuItem Header="{loc:Tr menu.frame.showAll}"
+                              IsEnabled="{Binding HasHiddenFrames}" Click="OnShowAllFrames" />
+                  </ContextMenu>
+                </ListBox.ContextMenu>
+                <ListBox.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <WrapPanel Orientation="Horizontal" />
+                  </ItemsPanelTemplate>
+                </ListBox.ItemsPanel>
+                <ListBox.ItemTemplate>
+                  <DataTemplate DataType="vm:FrameViewModel">
+                    <!-- 悬停列出该帧的全部变更；无变更时 ChangeTooltip 为 null，不会弹空提示框 -->
+                    <Grid Width="96" Height="116" Margin="0,0,8,8"
+                          ToolTip.Tip="{Binding ChangeTooltip}">
+                      <Border Classes="frameCard" Classes.hidden="{Binding !IsVisible}"
+                              Classes.changed="{Binding HasChanges}"
+                              CornerRadius="6"
+                              BorderThickness="1"
+                              Background="{DynamicResource SurfaceRaised}"
+                              ClipToBounds="True">
+                        <Grid RowDefinitions="* ,24">
+                          <controls:FrameThumbnail Image="{Binding Thumbnail}"
+                                                   CheckerBrush="{DynamicResource TransparencyChecker}"
+                                                   Margin="2" />
+                          <Grid Grid.Row="1" ColumnDefinitions="*,Auto" Margin="6,0">
+                            <TextBlock Text="{Binding IndexText}" FontSize="11"
+                                       Foreground="{DynamicResource AccentPrimary}"
+                                       VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="1" Text="{Binding SizeText}" FontSize="11"
+                                       Foreground="{DynamicResource TextSecondary}"
+                                       VerticalAlignment="Center" />
+                          </Grid>
+                        </Grid>
+                      </Border>
+
+                      <!-- 变更角标：一帧只显示一个（新增 > 替换 > 尺寸 > 移动），全部变更在 tooltip 里列全。
+                           和「已隐藏」角标一样放在卡片 Border 之外：0.4 的不透明度只作用于卡片，
+                           角标不会被一起压暗（隐藏帧 + 变更帧同时存在时仍然清晰可辨）。 -->
+                      <Border IsVisible="{Binding ShowInsertedBadge}"
+                              HorizontalAlignment="Right" VerticalAlignment="Top"
+                              Margin="0,3,3,0"
+                              Background="{DynamicResource StateSuccess}"
+                              CornerRadius="3" Padding="3,0"
+                              IsHitTestVisible="False">
+                        <TextBlock Text="{loc:Tr frame.change.badge.new}" FontSize="11" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource FrameChangeBadgeText}" />
+                      </Border>
+
+                      <!-- 替换素材：实心小圆点。底色用面板色垫一层，压在任何亮度的缩略图上都读得清 -->
+                      <Border IsVisible="{Binding ShowPixelsBadge}"
+                              HorizontalAlignment="Right" VerticalAlignment="Top"
+                              Margin="0,3,3,0"
+                              Background="{DynamicResource SurfacePanel}"
+                              CornerRadius="3" Padding="2"
+                              IsHitTestVisible="False">
+                        <Ellipse Width="7" Height="7" Fill="{DynamicResource StateWarning}" />
+                      </Border>
+
+                      <!-- 改尺寸 / 裁剪：小方块 -->
+                      <Border IsVisible="{Binding ShowGeometryBadge}"
+                              HorizontalAlignment="Right" VerticalAlignment="Top"
+                              Margin="0,3,3,0"
+                              Background="{DynamicResource SurfacePanel}"
+                              CornerRadius="3" Padding="2"
+                              IsHitTestVisible="False">
+                        <Border Width="8" Height="8" CornerRadius="1"
+                                Background="{DynamicResource StateWarning}" />
+                      </Border>
+
+                      <!-- 顺序变了：很小的上下双箭头 -->
+                      <Border IsVisible="{Binding ShowMovedBadge}"
+                              HorizontalAlignment="Right" VerticalAlignment="Top"
+                              Margin="0,3,3,0"
+                              Background="{DynamicResource SurfacePanel}"
+                              CornerRadius="3" Padding="2"
+                              IsHitTestVisible="False">
+                        <Path Data="{StaticResource IconMoveVertical}" Width="11" Height="11" Stretch="Uniform"
+                              Stroke="{DynamicResource TextSecondary}" StrokeThickness="1.4"
+                              StrokeLineCap="Round" StrokeJoin="Round" Fill="Transparent" />
+                      </Border>
+
+                      <!-- 已隐藏角标：放在卡片外（不跟着 0.4 一起变淡），右下角贴住缩略图区域 -->
+                      <Border IsVisible="{Binding !IsVisible}"
+                              HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                              Margin="0,0,3,27"
+                              Background="{DynamicResource SurfacePanel}"
+                              CornerRadius="3" Padding="2"
+                              ToolTip.Tip="{loc:Tr frame.hidden.tip}"
+                              ToolTip.Placement="Left">
+                        <Path Data="{StaticResource IconEyeOff}" Width="14" Height="14" Stretch="Uniform"
+                              Stroke="{DynamicResource TextSecondary}" StrokeThickness="1.3"
+                              StrokeLineCap="Round" StrokeJoin="Round" Fill="Transparent" />
+                      </Border>
+    
+                      <!-- 当前播放帧高亮：覆盖层，不参与布局，所以缩略图尺寸不会跳动 -->
+                      <Border IsVisible="{Binding IsCurrent}"
+                              BorderBrush="{DynamicResource AccentPrimary}"
+                              BorderThickness="2"
+                              CornerRadius="6"
+                              IsHitTestVisible="False" />
+                    </Grid>
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
+
+              <!-- 拖拽层：只有截图/拖拽时可见，命中测试关闭（不挡点击与滚动） -->
+              <Canvas x:Name="FrameDropLayer" IsHitTestVisible="False">
+                <Border x:Name="FrameDragGhost" IsVisible="False"
+                        Opacity="0.75" CornerRadius="6"
+                        BorderBrush="{DynamicResource AccentPrimary}" BorderThickness="1"
+                        Background="{DynamicResource SurfaceRaised}">
+                  <Image x:Name="FrameDragGhostImage" Stretch="Fill" />
+                </Border>
+                <Border x:Name="FrameDropIndicator" IsVisible="False"
+                        Width="2" CornerRadius="1"
+                        Background="{DynamicResource AccentPrimary}" />
+              </Canvas>
+              </Grid>
+    
+              <!-- 0 帧时按原因给可读文案：没选条目 / 解析失败 / 版本仅透传 / 确实没有帧 -->
+              <StackPanel Grid.Row="1" IsVisible="{Binding !HasFrames}"
+                          VerticalAlignment="Center" Spacing="10" Margin="24">
+                <TextBlock x:Name="FrameEmptyText"
+                           Text="{Binding FrameAreaEmptyText}"
+                           FontSize="13" Foreground="{DynamicResource TextSecondary}"
+                           HorizontalAlignment="Center" TextAlignment="Center"
+                           TextWrapping="Wrap" MaxWidth="240" />
+              </StackPanel>
+    
+              <!-- ==================== 帧检查器 ==================== -->
+              <!-- 无选中帧整块隐藏（Auto 行收成 0 高）；只做透明度过渡，不做高度动画 -->
+              <Border Grid.Row="2" x:Name="InspectorPanel"
+                      IsVisible="{Binding Inspector.HasSelection}"
+                      Background="{DynamicResource SurfaceRaised}"
+                      BorderBrush="{DynamicResource BorderDefault}"
+                      BorderThickness="0,1,0,0">
+                <Border.Transitions>
+                  <Transitions>
+                    <DoubleTransition Property="Opacity" Duration="0:0:0.12" />
+                  </Transitions>
+                </Border.Transitions>
+    
+                <StackPanel Margin="12,8,12,12" Spacing="8">
+    
+                  <!-- 面板头：标题 + 结构操作 -->
+                  <Grid ColumnDefinitions="Auto,*,Auto">
+                    <TextBlock Classes="panelTitle" Text="{loc:Tr inspector.title}" />
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="2">
+                      <Button Classes="toolSm" x:Name="InsertFrameButton" IsEnabled="{Binding Inspector.CanInsert}"
+                              ToolTip.Tip="{loc:Tr inspector.insert}" Click="OnInsertFrame">
+                        <Path Data="{StaticResource IconInsert}" Width="18" Height="18" Stretch="Uniform" />
+                      </Button>
+                      <Button Classes="toolSm" x:Name="DeleteFrameButton" IsEnabled="{Binding Inspector.CanDelete}"
+                              ToolTip.Tip="{loc:Tr inspector.delete}" Click="OnDeleteFrame">
+                        <Path Data="{StaticResource IconDelete}" Width="18" Height="18" Stretch="Uniform" />
+                      </Button>
+                      <Button Classes="toolSm" x:Name="MoveUpFrameButton" IsEnabled="{Binding Inspector.CanMoveUp}"
+                              ToolTip.Tip="{loc:Tr inspector.moveUp}" Click="OnMoveFrameUp">
+                        <Path Data="{StaticResource IconArrowUp}" Width="18" Height="18" Stretch="Uniform" />
+                      </Button>
+                      <Button Classes="toolSm" x:Name="MoveDownFrameButton" IsEnabled="{Binding Inspector.CanMoveDown}"
+                              ToolTip.Tip="{loc:Tr inspector.moveDown}" Click="OnMoveFrameDown">
+                        <Path Data="{StaticResource IconArrowDown}" Width="18" Height="18" Stretch="Uniform" />
+                      </Button>
+                    </StackPanel>
+                  </Grid>
+    
+                  <!-- 序号（主色）+ 尺寸（次要）+ 只读格式 chip -->
+                  <Grid ColumnDefinitions="Auto,8,Auto,*,Auto">
+                    <TextBlock Text="{Binding Inspector.TitleText}"
+                               FontSize="13" FontWeight="SemiBold"
+                               Foreground="{DynamicResource AccentPrimary}"
+                               VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="2" Classes="caption"
+                               Text="{Binding Inspector.SizeText}"
+                               IsVisible="{Binding Inspector.HasFrameMeta}"
+                               VerticalAlignment="Center" />
+                    <!-- 版本 + 格式 chip：实验性版本改用 StateWarning 前景并加一个警示点，
+                         不靠字符串拼接颜色；提示语说明"推导实现、无真实样本"或"只能原样保存" -->
+                    <Border Grid.Column="4"
+                            Background="{DynamicResource AccentSubtle}"
+                            CornerRadius="4" Padding="6,2"
+                            ToolTip.Tip="{Binding Inspector.VersionTip}"
+                            IsVisible="{Binding Inspector.HasFrameMeta}">
+                      <StackPanel Orientation="Horizontal" Spacing="4">
+                        <TextBlock Text="●" FontSize="8"
+                                   Foreground="{DynamicResource StateWarning}"
+                                   VerticalAlignment="Center"
+                                   IsVisible="{Binding Inspector.IsVersionExperimental}" />
+                        <TextBlock Classes="meta"
+                                   Classes.warn="{Binding Inspector.IsVersionExperimental}"
+                                   Text="{Binding Inspector.MetaText}" />
+                      </StackPanel>
+                    </Border>
+                  </Grid>
+    
+                  <!-- 位置 / 尺寸：两行两列（X Y 一行、宽 高 一行）。
+                       标签列固定 18px，两个输入列都是 *，中间只留 14px 间隔：
+                       宽度由列定义保证逐像素相等，不靠 MaxWidth（那会让宽屏下两侧留白不等）。 -->
+                  <Grid x:Name="InspectorGeometryGrid"
+                        ColumnDefinitions="18,*,14,18,*" RowDefinitions="Auto,Auto,Auto"
+                        RowSpacing="6" ColumnSpacing="0">
+                    <TextBlock Classes="caption" Text="X" HorizontalAlignment="Right"
+                               VerticalAlignment="Center" ToolTip.Tip="{loc:Tr inspector.positionTip}" />
+                    <NumericUpDown Grid.Column="1" x:Name="InspectorXInput" Classes="nud"
+                                   Classes.invalid="{Binding Inspector.XInvalid}"
+                                   Value="{Binding Inspector.X, Mode=TwoWay}"
+                                   FormatString="0" Increment="1"
+                                   ShowButtonSpinner="False"
+                                   IsEnabled="{Binding Inspector.CanEditPosition}"
+                                   ToolTip.Tip="{loc:Tr inspector.positionTip}" />
+
+                    <TextBlock Grid.Column="3" Classes="caption" Text="Y"
+                               HorizontalAlignment="Right" VerticalAlignment="Center"
+                               ToolTip.Tip="{loc:Tr inspector.positionTip}" />
+                    <NumericUpDown Grid.Column="4" x:Name="InspectorYInput" Classes="nud"
+                                   Classes.invalid="{Binding Inspector.YInvalid}"
+                                   Value="{Binding Inspector.Y, Mode=TwoWay}"
+                                   FormatString="0" Increment="1"
+                                   ShowButtonSpinner="False"
+                                   IsEnabled="{Binding Inspector.CanEditPosition}"
+                                   ToolTip.Tip="{loc:Tr inspector.positionTip}" />
+
+                    <TextBlock Grid.Row="1" Classes="caption" Text="{loc:Tr inspector.width}"
+                               HorizontalAlignment="Right" VerticalAlignment="Center"
+                               ToolTip.Tip="{loc:Tr inspector.resizeHint}" />
+                    <NumericUpDown Grid.Row="1" Grid.Column="1" x:Name="InspectorWidthInput" Classes="nud"
+                                   Classes.invalid="{Binding Inspector.WidthInvalid}"
+                                   Value="{Binding Inspector.Width, Mode=TwoWay}"
+                                   Minimum="1" Maximum="8192"
+                                   FormatString="0" Increment="1"
+                                   ShowButtonSpinner="False"
+                                   IsEnabled="{Binding Inspector.CanResize}"
+                                   ToolTip.Tip="{loc:Tr inspector.resizeHint}" />
+
+                    <TextBlock Grid.Row="1" Grid.Column="3" Classes="caption" Text="{loc:Tr inspector.height}"
+                               HorizontalAlignment="Right" VerticalAlignment="Center"
+                               ToolTip.Tip="{loc:Tr inspector.resizeHint}" />
+                    <NumericUpDown Grid.Row="1" Grid.Column="4" x:Name="InspectorHeightInput" Classes="nud"
+                                   Classes.invalid="{Binding Inspector.HeightInvalid}"
+                                   Value="{Binding Inspector.Height, Mode=TwoWay}"
+                                   Minimum="1" Maximum="8192"
+                                   FormatString="0" Increment="1"
+                                   ShowButtonSpinner="False"
+                                   IsEnabled="{Binding Inspector.CanResize}"
+                                   ToolTip.Tip="{loc:Tr inspector.resizeHint}" />
+
+                    <!-- 重采样提示从 tooltip 提到明面上：改宽高会真的改像素，这句话不能只藏在悬停里 -->
+                    <TextBlock Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="4"
+                               Text="{loc:Tr inspector.resizeHintShort}"
+                               FontSize="11" Foreground="{DynamicResource TextSecondary}"
+                               TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" />
+                  </Grid>
+
+                  <!-- 可编辑（坐标 / 尺寸）与只读信息（帧域 / LINK）之间划一条线 -->
+                  <Border Height="1" Background="{DynamicResource BorderDefault}" />
+
+                  <!-- 帧域 / LINK 目标（只读） -->
+                  <TextBlock Classes="caption" TextWrapping="Wrap"
+                             Text="{Binding Inspector.FooterText}" />
+                </StackPanel>
+              </Border>
+            </Grid>
+
+            <!-- 折叠态：40px 竖条（展开按钮 + 帧计数） -->
+            <Border x:Name="RightRail" IsVisible="{Binding IsRightCollapsed}">
+              <StackPanel Margin="0,8,0,0" Spacing="10" HorizontalAlignment="Center">
+                <Button Classes="toolSm" x:Name="ExpandRightButton"
+                        ToolTip.Tip="{loc:Tr panel.expandRight}" Click="OnToggleRightPanel">
+                  <Path Data="{StaticResource IconChevronsLeft}" Width="16" Height="16" Stretch="Uniform" />
+                </Button>
+                <Border Background="{DynamicResource AccentSubtle}" CornerRadius="4" Padding="5,2"
+                        HorizontalAlignment="Center" ToolTip.Tip="{Binding FrameCounter}">
+                  <TextBlock Text="{Binding RightPanelCountText}" FontSize="11"
+                             Foreground="{DynamicResource AccentPrimary}" />
+                </Border>
+              </StackPanel>
+            </Border>
+          </Grid>
+        </Border>
+      </Grid>
+    </Grid>
+
+    <!-- ==================== 状态栏 ==================== -->
+    <Border Grid.Row="2"
+            Background="{DynamicResource StatusBarBg}"
+            BorderBrush="{DynamicResource BorderDefault}"
+            BorderThickness="0,1,0,0">
+      <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto,Auto,Auto,Auto" Margin="12,0">
+        <StackPanel Orientation="Horizontal" Spacing="16" VerticalAlignment="Center">
+          <TextBlock Classes="caption" Text="{Binding Status}" VerticalAlignment="Center" />
+          <!-- 当前帧被隐藏时的常驻提示：状态栏文案会被后续操作覆盖，这个 chip 只跟着选中帧走 -->
+          <Border x:Name="FrameHiddenChip" IsVisible="{Binding IsSelectedFrameHidden}"
+                  Background="{DynamicResource SurfaceRaised}"
+                  BorderBrush="{DynamicResource StateWarning}"
+                  BorderThickness="1" CornerRadius="3" Padding="6,1"
+                  VerticalAlignment="Center"
+                  ToolTip.Tip="{loc:Tr frame.hidden.tip}">
+            <TextBlock Text="{loc:Tr status.frameHiddenChip}" FontSize="11"
+                       Foreground="{DynamicResource StateWarning}" />
+          </Border>
+          <!-- 忙碌指示：打开大目录 / 保存大包时给个可见反馈（IsBusy 之前赋值 9 处却没有绑定） -->
+          <ProgressBar Width="80" Height="4" IsIndeterminate="True"
+                       IsVisible="{Binding IsBusy}" VerticalAlignment="Center" />
+        </StackPanel>
+        <TextBlock Grid.Column="1" Classes="caption" Text="{Binding EntryCountText}" Margin="16,0" />
+        <TextBlock Grid.Column="2" Classes="caption" Text="{Binding FrameCounter}" Margin="16,0" />
+        <!-- 选中帧的坐标与尺寸：无选中帧时整段隐藏（文案为空） -->
+        <TextBlock Grid.Column="3" x:Name="SelectionGeometryLabel"
+                   Classes="caption" Text="{Binding SelectionGeometryText}" Margin="16,0"
+                   IsVisible="{Binding SelectionGeometryText, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}" />
+        <TextBlock Grid.Column="4" Classes="caption" Text="{Binding ModeText}" Margin="16,0" />
+        <!-- 画布缩放：来源是 ImageCanvas.Zoom，Ctrl+滚轮 / 适配窗口 / 1:1 都会刷新 -->
+        <TextBlock Grid.Column="5" Classes="caption" Text="{Binding ZoomText}" Margin="16,0,0,0" />
+        <!-- 鼠标所在角色坐标：带「光标」前缀 + 前置竖分隔，避免与左侧选中帧的 X/Y 混淆 -->
+        <StackPanel Grid.Column="6" Orientation="Horizontal" VerticalAlignment="Center"
+                    IsVisible="{Binding MousePositionText, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}">
+          <Rectangle Width="1" Height="12" Margin="16,0"
+                     Fill="{DynamicResource BorderDefault}" VerticalAlignment="Center" />
+          <TextBlock x:Name="MousePositionLabel"
+                     Classes="caption" Text="{Binding MousePositionText}" />
+        </StackPanel>
+        <!-- 坐标基准：极短标识，让用户知道光标坐标此刻读的是图像坐标还是角色坐标 -->
+        <TextBlock Grid.Column="7" x:Name="OriginModeLabel"
+                   Classes="caption" Text="{Binding OriginModeText}" Margin="16,0,0,0"
+                   ToolTip.Tip="{Binding OriginModeTip}" VerticalAlignment="Center" />
+      </Grid>
+    </Border>
+  </Grid>
+</Window>

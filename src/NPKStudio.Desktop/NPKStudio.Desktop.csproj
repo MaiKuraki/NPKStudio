@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <RootNamespace>NPKStudio.Desktop</RootNamespace>
+    <AssemblyName>NPKStudio</AssemblyName>
+    <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    <!-- 禁止 JSON 反射回退：若某处仍走反射序列化，运行时直接抛异常，强制暴露 -->
+    <JsonSerializerIsReflectionEnabledByDefault>false</JsonSerializerIsReflectionEnabledByDefault>
+
+    <Version>1.0.7</Version>
+    <Product>NPKStudio</Product>
+    <AssemblyTitle>NPKStudio</AssemblyTitle>
+    <Description>DNF NPK / IMG resource editor and packer</Description>
+    <Copyright>MIT License</Copyright>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="11.3.22" />
+    <PackageReference Include="Avalonia.Desktop" Version="11.3.22" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.22" />
+    <PackageReference Include="Avalonia.Fonts.Inter" Version="11.3.22" />
+    <PackageReference Include="Avalonia.Diagnostics" Version="11.3.22" Condition="'$(Configuration)' == 'Debug'" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\NPKStudio.Core\NPKStudio.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 测试项目需要直接驱动 internal 的 ApplyFilter（跳过 150ms 防抖） -->
+    <InternalsVisibleTo Include="NPKStudio.Desktop.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AvaloniaResource Include="Assets\**" />
+    <EmbeddedResource Include="Localization\*.json" />
+  </ItemGroup>
+</Project>

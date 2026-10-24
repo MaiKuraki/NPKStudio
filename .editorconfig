@@ -1,0 +1,62 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+# 建议行宽 120，但不作为构建期诊断（保持 0 warning 基线）
+max_line_length = 120
+
+[*.{csproj,props,targets,axaml,xml,json,yml,yaml}]
+indent_size = 2
+
+[*.sln]
+indent_size = 4
+
+[*.md]
+trim_trailing_whitespace = false
+
+[*.{png,ico,bmp,jpg,jpeg,gif,NPK,npk,img,IMG}]
+insert_final_newline = false
+
+[*.cs]
+# ── 命名空间：文件范围优先 ────────────────────────────────
+csharp_style_namespace_declarations = file_scoped:suggestion
+
+# ── var 偏好：能推断就用 var ──────────────────────────────
+csharp_style_var_for_built_in_types = true:suggestion
+csharp_style_var_when_type_is_apparent = true:suggestion
+csharp_style_var_elsewhere = true:suggestion
+
+# ── this. 不强制（现有代码两种都有，各有语境） ────────────
+dotnet_style_qualification_for_field = false:silent
+dotnet_style_qualification_for_property = false:silent
+dotnet_style_qualification_for_method = false:silent
+dotnet_style_qualification_for_event = false:silent
+
+# ── 其它与现有风格一致的偏好 ──────────────────────────────
+csharp_prefer_braces = when_multiline:suggestion
+csharp_style_prefer_primary_constructors = false:silent
+csharp_style_prefer_collection_expression = true:suggestion
+csharp_style_expression_bodied_methods = when_on_single_line:suggestion
+csharp_style_expression_bodied_properties = when_on_single_line:suggestion
+csharp_new_line_before_open_brace = all
+csharp_new_line_before_else = true
+csharp_new_line_before_catch = true
+csharp_new_line_before_finally = true
+dotnet_style_prefer_is_null_check_over_reference_equality_method = true:suggestion
+dotnet_style_coalesce_expression = true:suggestion
+dotnet_style_null_propagation = true:suggestion
+dotnet_style_prefer_auto_properties = true:suggestion
+
+# 所有风格规则一律 suggestion / silent：
+# 不影响编译诊断，避免把既有代码一次性变成 warning 洪水
+dotnet_diagnostic.IDE0005.severity = none
+
+# Visual Studio 按 CRLF 写解决方案文件，保持原样避免整文件 diff
+[*.sln]
+end_of_line = crlf

@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <RootNamespace>NPKStudio.Core.Tests</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.4.0" />
+    <PackageReference Include="MSTest.TestFramework" Version="4.2.1" />
+    <PackageReference Include="MSTest.TestAdapter" Version="4.2.1" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\NPKStudio.Core\NPKStudio.Core.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- 样本定位工具：与另外两个工程共享同一份源码（链接编译，不复制文件） -->
+    <Compile Include="..\SampleFiles.cs" Link="SampleFiles.cs" />
+    <!-- 测试样本：输出到 <out>/samples/，测试用 AppContext.BaseDirectory + "samples" 定位。
+         仓库只带合成样本；真实样本由开发者自备（见 tests/samples/README.md）。 -->
+    <None Include="..\samples\*.NPK" Link="samples\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

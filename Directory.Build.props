@@ -1,0 +1,23 @@
+<Project>
+
+  <!--
+    只放"所有项目都需要、且打开不改变现有行为"的公共属性。
+    会让既有代码突然报错的开关（例如 TreatWarningsAsErrors）一律不要加：
+    本仓库基线是 `dotnet build -m:1` 0 warning / 0 error，新增诊断等于破坏基线。
+  -->
+  <PropertyGroup>
+    <!-- 解决方案内各工程统一 net10.0（个别工程内同值声明冗余但无害） -->
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+
+    <!-- 不依赖 ICU：自包含发布更小，本项目不做区域性格式化 -->
+    <InvariantGlobalization>true</InvariantGlobalization>
+
+    <!-- 与现有 0 warning 基线一致：默认规则集 + 最新分析级别 -->
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisLevel>latest</AnalysisLevel>
+  </PropertyGroup>
+
+</Project>

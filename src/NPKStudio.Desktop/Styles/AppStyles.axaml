@@ -1,0 +1,228 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <!-- 工具栏按钮：32x32 命中区，20px 图标，不堆文字 -->
+  <Style Selector="Button.tool">
+    <Setter Property="Width" Value="32" />
+    <Setter Property="Height" Value="32" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="CornerRadius" Value="4" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Button.tool:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource StateHoverBg}" />
+  </Style>
+  <Style Selector="Button.tool:pressed /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource AccentSubtle}" />
+  </Style>
+
+  <!-- 面板内的次级操作按钮（帧检查器头部的插入/删除/上移/下移）：
+       比工具栏 tool 小一号，避免 320px 栏里图标显得压过标题 -->
+  <Style Selector="Button.toolSm">
+    <Setter Property="Width" Value="28" />
+    <Setter Property="Height" Value="28" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="CornerRadius" Value="4" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Button.toolSm:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource StateHoverBg}" />
+  </Style>
+  <Style Selector="Button.toolSm:pressed /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource AccentSubtle}" />
+  </Style>
+
+  <!-- 工具条上的"带文字"按钮（如「背景 ▾」）：与 tool 一致，但宽度随内容变化，只锁最小宽度防止抖动 -->
+  <Style Selector="Button.toolWide">
+    <Setter Property="MinWidth" Value="96" />
+    <Setter Property="Height" Value="32" />
+    <Setter Property="Padding" Value="8,0" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="CornerRadius" Value="4" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Button.toolWide:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource StateHoverBg}" />
+  </Style>
+  <Style Selector="Button.toolWide:pressed /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource AccentSubtle}" />
+  </Style>
+  <Style Selector="Button.tool:disabled">
+    <Setter Property="Opacity" Value="0.4" />
+  </Style>
+  <Style Selector="Button.toolSm:disabled">
+    <Setter Property="Opacity" Value="0.4" />
+  </Style>
+  <Style Selector="Button.tool Path">
+    <Setter Property="Stroke" Value="{DynamicResource TextPrimary}" />
+    <Setter Property="StrokeThickness" Value="1.5" />
+    <Setter Property="StrokeLineCap" Value="Round" />
+    <Setter Property="StrokeJoin" Value="Round" />
+    <Setter Property="Fill" Value="Transparent" />
+  </Style>
+
+  <!-- 次级按钮里的图标必须继承同一套描边，否则 Path 没有 Stroke/Fill 就完全不可见 -->
+  <Style Selector="Button.toolSm Path">
+    <Setter Property="Stroke" Value="{DynamicResource TextPrimary}" />
+    <Setter Property="StrokeThickness" Value="1.5" />
+    <Setter Property="StrokeLineCap" Value="Round" />
+    <Setter Property="StrokeJoin" Value="Round" />
+    <Setter Property="Fill" Value="Transparent" />
+  </Style>
+
+  <!-- 工具栏分组竖线 -->
+  <Style Selector="Rectangle.toolSep">
+    <Setter Property="Width" Value="1" />
+    <Setter Property="Height" Value="20" />
+    <Setter Property="Margin" Value="6,0" />
+    <Setter Property="Fill" Value="{DynamicResource BorderDefault}" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+
+  <!-- 面板头 -->
+  <Style Selector="TextBlock.panelTitle">
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="TextBlock.caption">
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+
+  <!-- 检查器里"版本 · 格式"chip 的文字：实验性版本换成警示色（颜色一律走 token） -->
+  <Style Selector="TextBlock.meta">
+    <Setter Property="FontSize" Value="11" />
+    <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="TextBlock.meta.warn">
+    <Setter Property="Foreground" Value="{DynamicResource StateWarning}" />
+  </Style>
+
+  <!-- 搜索框 -->
+  <Style Selector="TextBox.search">
+    <Setter Property="Height" Value="30" />
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="CornerRadius" Value="4" />
+    <Setter Property="Padding" Value="8,0" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="Background" Value="{DynamicResource BgCanvas}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderDefault}" />
+  </Style>
+
+  <!-- 主按钮 -->
+  <Style Selector="Button.primary">
+    <Setter Property="Height" Value="32" />
+    <Setter Property="Padding" Value="16,0" />
+    <Setter Property="CornerRadius" Value="4" />
+    <Setter Property="Background" Value="{DynamicResource AccentPrimary}" />
+    <Setter Property="Foreground" Value="White" />
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Button.primary:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource AccentHover}" />
+  </Style>
+
+  <!-- 空状态标题 -->
+  <Style Selector="TextBlock.emptyTitle">
+    <Setter Property="FontSize" Value="20" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+    <Setter Property="HorizontalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="TextBlock.emptyDesc">
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+    <Setter Property="HorizontalAlignment" Value="Center" />
+  </Style>
+
+  <!-- 列表项：选中态用底色 + 圆角，不用系统默认蓝块 -->
+  <Style Selector="ListBoxItem">
+    <Setter Property="Padding" Value="4,0" />
+    <Setter Property="MinHeight" Value="30" />
+    <Setter Property="CornerRadius" Value="4" />
+  </Style>
+  <Style Selector="ListBoxItem:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource StateHoverBg}" />
+  </Style>
+  <Style Selector="ListBoxItem:selected /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource StateSelectedBg}" />
+  </Style>
+  <Style Selector="ListBoxItem:selected TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+
+  <!-- 帧卡片：隐藏是纯视图状态（不删帧、不改文件），只用整卡不透明度表达；卡片仍可点选 / 拖拽 -->
+  <Style Selector="Border.frameCard">
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderDefault}" />
+  </Style>
+  <Style Selector="Border.frameCard.hidden">
+    <Setter Property="Opacity" Value="0.4" />
+  </Style>
+
+  <!-- 有变更的帧：1px 警示描边。颜色只能写在这里（模板里直接写 BorderBrush 会变成局部值，样式盖不掉） -->
+  <Style Selector="Border.frameCard.changed">
+    <Setter Property="BorderBrush" Value="{DynamicResource StateWarning}" />
+  </Style>
+
+  <!-- 选中优先：必须排在 changed 之后（同优先级下后定义的生效），
+       否则"有变更 + 选中"的卡片会显示警示色，用户分不清"我改过"和"我正选着" -->
+  <Style Selector="ListBoxItem:selected Border.frameCard">
+    <Setter Property="BorderBrush" Value="{DynamicResource AccentPrimary}" />
+  </Style>
+
+  <!-- ==================== 帧检查器 ==================== -->
+
+  <!-- 320px 栏里两组并排的紧凑数字输入。MinHeight 必须压到 28：
+       Fluent 的 TextControlThemeMinHeight 是 32，会把 Height=30 顶回去 -->
+  <Style Selector="NumericUpDown.nud">
+    <Setter Property="MinHeight" Value="28" />
+    <Setter Property="MinWidth" Value="0" />
+    <Setter Property="Height" Value="30" />
+    <Setter Property="HorizontalContentAlignment" Value="Right" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="Background" Value="{DynamicResource BgCanvas}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource BorderDefault}" />
+  </Style>
+  <!-- 内容是模板里的 TextBox，只能走 /template/（普通后代选择器匹配不到模板子元素）。
+       垂直居中必须落在 TextBox 自己身上：只设 NumericUpDown.VerticalContentAlignment
+       不会传给模板里的 PART_TextBox；同时清掉主题给 TextBox 的默认最小高度，
+       否则 30px 高的框里塞一个更高的 TextBox，数字会被顶偏。 -->
+  <Style Selector="NumericUpDown.nud /template/ TextBox#PART_TextBox">
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="Padding" Value="8,0" />
+    <Setter Property="MinHeight" Value="0" />
+    <Setter Property="Height" Value="30" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
+
+  <!-- 提交失败：红边。边框画在模板里的 ButtonSpinner 上（TextBox 的边框是 Transparent），
+       所以除了控件自身的 BorderBrush，还得在 /template/ 上兜住 :pointerover / :focus-within -->
+  <Style Selector="NumericUpDown.invalid">
+    <Setter Property="BorderBrush" Value="{DynamicResource StateDanger}" />
+  </Style>
+  <Style Selector="NumericUpDown.invalid /template/ ButtonSpinner#PART_Spinner">
+    <Setter Property="BorderBrush" Value="{DynamicResource StateDanger}" />
+  </Style>
+  <Style Selector="NumericUpDown.invalid:pointerover /template/ ButtonSpinner#PART_Spinner">
+    <Setter Property="BorderBrush" Value="{DynamicResource StateDanger}" />
+  </Style>
+  <Style Selector="NumericUpDown.invalid:focus-within /template/ ButtonSpinner#PART_Spinner">
+    <Setter Property="BorderBrush" Value="{DynamicResource StateDanger}" />
+  </Style>
+</Styles>

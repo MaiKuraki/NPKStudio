@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    <JsonSerializerIsReflectionEnabledByDefault>false</JsonSerializerIsReflectionEnabledByDefault>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.4.0" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+    <PackageReference Include="Avalonia.Headless.XUnit" Version="11.3.22" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\NPKStudio.Desktop\NPKStudio.Desktop.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 样本定位工具：与 Core.Tests 共享同一份源码（链接编译） -->
+    <Compile Include="..\SampleFiles.cs" Link="SampleFiles.cs" />
+    <!-- 样本（含合成样本 synthetic_shapes.NPK）拷到 <out>/samples/；
+         真实样本自备，缺失时相关用例静默跳过。 -->
+    <None Include="..\samples\*.NPK" Link="samples\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>
